@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Renders the share image and video into public/ (og.png, 1200×630, and og.mp4), plus the README demo
-# docs/demo.gif. The video reads the sample passage
-# read word by word with the app's own timing. Needs Google Chrome and ffmpeg.
+# docs/demo.gif. The video reads the sample passage word by word with the app's own timing.
+# Needs Google Chrome and ffmpeg.
 # Run from the repo root: scripts/og/render.sh
 set -euo pipefail
 
