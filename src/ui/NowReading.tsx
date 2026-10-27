@@ -2,7 +2,6 @@ import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { pause, play, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
-import type { ReaderFont } from "../store/db";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
 import { ChapterComplete, ChapterIntro } from "./ChapterCards";
@@ -10,21 +9,13 @@ import { Cover } from "./Cover";
 import { land, takeOff } from "./coverFlight";
 import { morphWord } from "./wordMorph";
 import { ContextView } from "./ContextView";
+import { FONT_NAMES, FONTS } from "./fonts";
 import { BackIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
 import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { WordDisplay } from "./WordDisplay";
 
-const FONTS: ReaderFont[] = ["sans", "serif", "iowan", "charter", "athelas", "rounded"];
-const FONT_NAMES: Record<ReaderFont, string> = {
-  sans: "SF Pro",
-  serif: "New York",
-  iowan: "Iowan",
-  charter: "Charter",
-  athelas: "Athelas",
-  rounded: "SF Rounded",
-};
 
 const SHEET_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
 const DISMISS_DISTANCE = 140;

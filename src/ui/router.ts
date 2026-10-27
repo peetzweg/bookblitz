@@ -1,17 +1,19 @@
 import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 
-export type Route = { name: "library" } | { name: "book"; id: string };
+export type Route = { name: "library" } | { name: "book"; id: string } | { name: "settings" };
 
 /** The cover that morphs between a library tile and the book page. One element carries the name at a time. */
 export const COVER_TRANSITION = "book-cover";
 
 function parse(hash: string): Route {
+  if (hash === "#/settings") return { name: "settings" };
   const match = hash.match(/^#\/book\/(.+)$/);
   return match ? { name: "book", id: decodeURIComponent(match[1]) } : { name: "library" };
 }
 
 function href(route: Route) {
+  if (route.name === "settings") return "#/settings";
   return route.name === "book" ? `#/book/${encodeURIComponent(route.id)}` : "#/";
 }
 
@@ -64,6 +66,13 @@ export function openBookPage(id: string, from?: HTMLElement | null) {
   const next: Route = { name: "book", id };
   history.pushState(null, "", href(next));
   transition(next, { before: from });
+}
+
+export function openSettings() {
+  navigatedInApp = true;
+  const next: Route = { name: "settings" };
+  history.pushState(null, "", href(next));
+  transition(next, {});
 }
 
 /** On the way back to the library, the cover morphs into the tile it came from. */

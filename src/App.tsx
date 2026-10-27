@@ -4,6 +4,7 @@ import { addSampleBook, importFiles, library, loadLibrary, retryLibrary } from "
 import { useStore } from "./store/store";
 import { BookPage } from "./ui/BookPage";
 import { Library } from "./ui/Library";
+import { Settings } from "./ui/Settings";
 import { MiniPlayer } from "./ui/MiniPlayer";
 import { NowReading } from "./ui/NowReading";
 import { applyUpdate, usePwa } from "./pwa";
@@ -72,7 +73,13 @@ export function App() {
   return (
     <>
       <div className={`app ${sheetOpen ? "pushed-back" : ""}`} style={{ transformOrigin: origin }}>
-        {route.name === "book" ? <BookPage id={route.id} /> : <Library onAdd={pickFiles} />}
+        {route.name === "book" ? (
+          <BookPage id={route.id} />
+        ) : route.name === "settings" ? (
+          <Settings />
+        ) : (
+          <Library onAdd={pickFiles} />
+        )}
       </div>
       <MiniPlayer />
       <NowReading />

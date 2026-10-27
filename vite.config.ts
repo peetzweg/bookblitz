@@ -1,8 +1,23 @@
+import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
+import pkg from "./package.json" with { type: "json" };
+
+/** Short commit of the build, shown in Settings so you can tell which version a phone is running. */
+const commit = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "dev";
+  }
+})();
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __COMMIT__: JSON.stringify(commit),
+  },
   plugins: [
     react(),
     VitePWA({

@@ -15,6 +15,8 @@
   --destructive: #ff3b30;
   --material: rgba(249, 249, 249, 0.78);
   --segment-bg: #ffffff;
+  --grouped-page: #f2f2f7;
+  --grouped-cell: #ffffff;
   --cover-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
@@ -45,6 +47,8 @@
     --destructive: #ff453a;
     --material: rgba(30, 30, 30, 0.75);
     --segment-bg: #636366;
+    --grouped-page: #000000;
+    --grouped-cell: #1c1c1e;
     --cover-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
   }
 }
@@ -1909,6 +1913,144 @@ ol {
 .footer-button.on {
   color: var(--sheet-fg);
   background: rgb(var(--ink) / 0.16);
+}
+
+/* ---------- Settings ---------- */
+
+/* iOS grouped list: grey page, white cells (black page, dark cells in dark mode). */
+.app:has(.settings-page) {
+  background: var(--grouped-page);
+}
+
+.settings-page {
+  /* The live style picker and slider use the reader's ink variables. */
+  --ink: 0 0 0;
+  --sheet-fg: var(--label);
+  --sheet-fg-2: var(--label-2);
+  --sheet-fg-3: var(--label-3);
+  max-width: 680px;
+  padding-top: calc(var(--safe-top) + 56px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-page {
+    --ink: 255 255 255;
+  }
+}
+
+.title-actions {
+  display: flex;
+  gap: 4px;
+  margin-right: -8px;
+}
+
+.settings-heading {
+  margin: 28px 16px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--label-2);
+}
+
+.settings-group {
+  border-radius: 12px;
+  background: var(--grouped-cell);
+  overflow: hidden;
+}
+
+.settings-group.padded {
+  padding: 16px;
+}
+
+.settings-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  font-size: 17px;
+  color: inherit;
+  text-decoration: none;
+  text-align: left;
+}
+
+.settings-row + .settings-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  border-top: 0.5px solid var(--separator);
+}
+
+.settings-row.pressable:active {
+  transform: none;
+  opacity: 1;
+  background: var(--fill);
+}
+
+.settings-row.destructive {
+  color: var(--destructive);
+}
+
+.settings-value {
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-font-sample {
+  font-size: 19px;
+}
+
+.settings-footnote {
+  margin: 8px 16px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--label-2);
+}
+
+.link-button {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.link-button:active {
+  opacity: 0.5;
+}
+
+.settings-speed {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row-split {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.style-picker.embedded {
+  flex: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.style-picker.embedded .style-preview {
+  padding: 6px 0 14px;
+}
+
+.pill-button:disabled {
+  opacity: 0.45;
 }
 
 /* ---------- Toast & drop ---------- */

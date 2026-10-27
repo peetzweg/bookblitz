@@ -7,9 +7,9 @@ import { addSampleBook, bookStatus, library, percentRead, resetLibrary, retryLib
 import { useStore } from "../store/store";
 import { Cover } from "./Cover";
 import { takeOff } from "./coverFlight";
-import { BookIcon, CheckCircleIcon, PlayIcon, PlusIcon } from "./icons";
+import { BookIcon, CheckCircleIcon, GearIcon, PlayIcon, PlusIcon } from "./icons";
 import { InstallCard } from "./InstallCard";
-import { openBookPage } from "./router";
+import { openBookPage, openSettings } from "./router";
 
 type Filter = "all" | BookStatus;
 
@@ -41,9 +41,14 @@ export function Library({ onAdd }: { onAdd: () => void }) {
     <main className="page">
       <header className="large-title-bar">
         <h1 className="large-title">Library</h1>
-        <button className="icon-button tint" onClick={onAdd} aria-label="Add EPUB">
-          <PlusIcon size={22} />
-        </button>
+        <div className="title-actions">
+          <button className="icon-button tint" onClick={openSettings} aria-label="Settings">
+            <GearIcon size={22} />
+          </button>
+          <button className="icon-button tint" onClick={onAdd} aria-label="Add EPUB">
+            <PlusIcon size={22} />
+          </button>
+        </div>
       </header>
 
       {ready && books.length > 0 && <InstallCard />}

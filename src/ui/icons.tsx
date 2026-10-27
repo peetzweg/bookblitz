@@ -80,6 +80,14 @@ export const RhythmIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const GearIcon = (p: IconProps) => (
+  <Icon {...p} fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" />
+    <circle cx="12" cy="12" r="6.6" />
+  </Icon>
+);
+
 export const CheckIcon = (p: IconProps) => (
   <Icon {...p} fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
     <path d="m5.5 12.5 4 4 9-9.5" />

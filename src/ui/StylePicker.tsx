@@ -20,7 +20,7 @@ const ORDER: StyleId[] = ["flow", "phrases", "calm"];
  * The reading-style taste test: each style plays the same passage at your speed, so you can feel the
  * difference instead of reading about it. Shown before the first read, and from the reader's footer.
  */
-export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
+export function StylePicker({ onDone, embedded = false }: { onDone?: (style: StyleId) => void; embedded?: boolean }) {
   const current = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const firstTime = useStore(library, (s) => !s.settings.styleChosen);
   const [selected, setSelected] = useState<StyleId>(current);
@@ -35,14 +35,18 @@ export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
   }, []);
 
   return (
-    <div className="style-picker">
+    <div className={`style-picker ${embedded ? "embedded" : ""}`}>
       <div className="style-preview">
         <StylePreview style={selected} />
       </div>
-      <div className="style-intro">
-        <h2 className="card-title small">How do you like to read?</h2>
-        <p className="card-meta">Each style reads the same lines at your speed. Pick the one that feels easiest; you can change it any time.</p>
-      </div>
+      {!embedded && (
+        <div className="style-intro">
+          <h2 className="card-title small">How do you like to read?</h2>
+          <p className="card-meta">
+            Each style reads the same lines at your speed. Pick the one that feels easiest; you can change it any time in Settings.
+          </p>
+        </div>
+      )}
       <div className="style-options" role="radiogroup" aria-label="Reading style">
         {ORDER.map((id) => {
           const style = STYLES[id];
@@ -66,15 +70,28 @@ export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
           );
         })}
       </div>
-      <button
-        className="start-button"
-        onClick={() => {
-          updateSettings({ style: selected, styleChosen: true });
-          onDone(selected);
-        }}
-      >
-        Read with {STYLES[selected].name}
-      </button>
+      {embedded ? (
+        <button
+          className="pill-button filled"
+          disabled={selected === current}
+          onClick={() => {
+            updateSettings({ style: selected, styleChosen: true });
+            onDone?.(selected);
+          }}
+        >
+          {selected === current ? `Reading with ${STYLES[selected].name}` : `Use ${STYLES[selected].name}`}
+        </button>
+      ) : (
+        <button
+          className="start-button"
+          onClick={() => {
+            updateSettings({ style: selected, styleChosen: true });
+            onDone?.(selected);
+          }}
+        >
+          Read with {STYLES[selected].name}
+        </button>
+      )}
     </div>
   );
 }
