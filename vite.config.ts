@@ -61,6 +61,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __COMMIT__: JSON.stringify(commit),
+    __BUILT_AT__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [
     react(),

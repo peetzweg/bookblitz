@@ -1,4 +1,4 @@
-import { isIosSafari, promptInstall, usePwa } from "../pwa";
+import { applyUpdate, checkForUpdate, isIosSafari, promptInstall, usePwa, type UpdateStatus } from "../pwa";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { closeBook, reader, setWpm } from "../reader/reader";
 import { addSampleBook, library, resetLibrary, showToast, updateSettings } from "../store/library";
@@ -12,6 +12,14 @@ import { INTENSITIES, TRANSITION_GROUPS, TRANSITIONS } from "./transitions";
 
 declare const __APP_VERSION__: string;
 declare const __COMMIT__: string;
+declare const __BUILT_AT__: string;
+
+const UPDATE_NOTE: Partial<Record<UpdateStatus, string>> = {
+  checking: "Checking…",
+  current: "Up to date",
+  ready: "Downloaded",
+  failed: "Couldn't check",
+};
 
 const REPO_URL = "https://github.com/peetzweg/bookblitz";
 const RESEARCH_URL = `${REPO_URL}/blob/main/docs/research/speed-reading.md`;
@@ -24,6 +32,7 @@ export function Settings() {
   const hasSample = useStore(library, (s) => s.books.some((b) => /^Alice.s Adventures in Wonderland$/.test(b.title)));
   const installed = usePwa((s) => s.installed);
   const canPrompt = usePwa((s) => s.canPrompt);
+  const update = usePwa((s) => s.update);
   const style = STYLES[settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
   const font = settings.font;
 
@@ -146,12 +155,30 @@ export function Settings() {
           <span>Source code on GitHub</span>
           <span className="settings-value">›</span>
         </a>
-        <div className="settings-row">
+        {/* The commit links to exactly what's running, for reference. */}
+        <a
+          className="settings-row pressable"
+          href={__COMMIT__ === "dev" ? REPO_URL : `${REPO_URL}/commit/${__COMMIT__}`}
+          target="_blank"
+          rel="noreferrer"
+        >
           <span>Version</span>
           <span className="settings-value">
-            {__APP_VERSION__} ({__COMMIT__})
+            {__APP_VERSION__} · {__COMMIT__} · {new Date(__BUILT_AT__).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
           </span>
-        </div>
+        </a>
+        {!import.meta.env.DEV && (
+          <button
+            className="settings-row pressable"
+            disabled={update === "checking"}
+            onClick={update === "ready" ? applyUpdate : checkForUpdate}
+          >
+            <span className={update === "ready" ? "tint" : undefined}>
+              {update === "ready" ? "Restart to Update" : "Check for Updates"}
+            </span>
+            {UPDATE_NOTE[update] && <span className="settings-value">{UPDATE_NOTE[update]}</span>}
+          </button>
+        )}
       </section>
     </main>
   );

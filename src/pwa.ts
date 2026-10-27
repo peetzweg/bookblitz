@@ -10,17 +10,22 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+/** Where Settings' "Check for Updates" stands. */
+export type UpdateStatus = "idle" | "checking" | "current" | "ready" | "failed";
+
 interface PwaState {
   /** Running from the home screen rather than in a browser tab. */
   installed: boolean;
   /** Chrome/Android offered an install prompt we can show on our own button. */
   canPrompt: boolean;
+  update: UpdateStatus;
 }
 
 const standalone = () =>
   matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-const pwa = createStore<PwaState>({ installed: standalone(), canPrompt: false });
+const pwa = createStore<PwaState>({ installed: standalone(), canPrompt: false, update: "idle" });
+let swRegistration: ServiceWorkerRegistration | undefined;
 
 let installPrompt: InstallPromptEvent | undefined;
 
@@ -46,12 +51,14 @@ for (const type of ["pointerdown", "keydown"]) {
  */
 const updateServiceWorker = registerSW({
   onNeedRefresh() {
+    pwa.set({ update: "ready" });
     const fresh = performance.now() - launchedAt < LAUNCH_WINDOW_MS;
     if (fresh && !touched && !reader.get().open && library.get().importing === 0) updateServiceWorker(true);
   },
   onOfflineReady: () => showToast("Ready to use offline"),
   onRegisteredSW(_url, registration) {
     if (!registration) return;
+    swRegistration = registration;
     // Installed apps are rarely restarted, so look for a new version whenever the app comes back to
     // the front, and every so often while it stays open. Found versions wait for the next fresh start.
     const check = () => navigator.onLine && registration.update().catch(() => {});
@@ -61,6 +68,37 @@ const updateServiceWorker = registerSW({
     });
   },
 });
+
+/** The manual way in, from Settings: look for a new version now. */
+export async function checkForUpdate() {
+  const registration = swRegistration;
+  if (!registration) return pwa.set({ update: "failed" });
+  if (registration.waiting) return pwa.set({ update: "ready" });
+  pwa.set({ update: "checking" });
+  try {
+    await registration.update();
+    const installing = registration.installing;
+    if (installing) {
+      await new Promise<void>((resolve) => {
+        const settle = () => installing.state !== "installing" && resolve();
+        installing.addEventListener("statechange", settle);
+        settle();
+      });
+    }
+    // With no page under its control yet (the very first visit), a new worker skips waiting, so the
+    // page is behind it without one waiting; a reload catches up either way.
+    if (installing?.state === "redundant") pwa.set({ update: "failed" });
+    else pwa.set({ update: registration.waiting || installing ? "ready" : "current" });
+  } catch {
+    pwa.set({ update: "failed" });
+  }
+}
+
+/** Swap in the downloaded version now. Only ever on request, from Settings. */
+export function applyUpdate() {
+  if (swRegistration?.waiting) updateServiceWorker(true);
+  else location.reload();
+}
 
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
