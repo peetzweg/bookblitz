@@ -264,7 +264,10 @@ function persist() {
 
 async function acquireWakeLock() {
   try {
-    wakeLock = await navigator.wakeLock?.request("screen");
+    const lock = await navigator.wakeLock?.request("screen");
+    // Paused while the request was pending: let go straight away, so the screen can sleep.
+    if (!reader.get().playing) lock?.release().catch(() => {});
+    else wakeLock = lock;
   } catch {
     // Not supported or denied; reading still works, the screen may just dim.
   }
