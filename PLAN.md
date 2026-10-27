@@ -53,6 +53,15 @@ Every book is in one of three states: **unread**, **reading** or **finished**.
 - Back / forward jump by sentence. Keyboard: space, ← →, ↑ ↓ for WPM.
 - Screen Wake Lock is held while reading.
 
+## Reading styles
+
+Three styles, timed from the research brief in [docs/research/speed-reading.md](docs/research/speed-reading.md):
+**Flow** (default: one word, time grows from 5 letters, pauses scale with sentence length and have
+millisecond floors), **Phrases** (function words ride with the next content word, S-PTP style) and
+**Calm** (longer pauses for dense text). The first play shows a taste test where each style reads the
+same passage live. Phase 2 from the brief: a rare-word bonus (needs a frequency list) and hyphen-splitting
+words of 14+ letters.
+
 ## Data model (IndexedDB)
 
 - `books`: id (content hash), title, author, cover blob, chapter list (title + word count), total words, added / last opened

@@ -18,11 +18,15 @@ export function baseInterval(wpm: number): number {
   return 60000 / wpm;
 }
 
-/** Average weight across real prose, so time estimates match what the engine actually does. */
-const AVERAGE_WEIGHT = 1.22;
+/** Average time per word for the current reading style, so "time left" matches what reading does. */
+let meanWeight = 1.16;
+
+export function setEstimateWeight(weight: number) {
+  meanWeight = weight;
+}
 
 export function estimateMs(words: number, wpm: number): number {
-  return words * baseInterval(wpm) * AVERAGE_WEIGHT;
+  return words * baseInterval(wpm) * meanWeight;
 }
 
 export function formatClock(ms: number): string {
@@ -44,16 +48,15 @@ export function formatDuration(ms: number, compact = false): string {
 }
 
 /**
- * Focus letter for a frame. A single word uses its recognition point; a phrase uses the recognition
- * point of its longest word, which is where the eye needs to land.
+ * Focus letter for a frame. A single word uses its recognition point (the Spritz table); a phrase
+ * uses the letter nearest 40% of the way in (research brief §5.2).
  */
 export function framePivot(text: string): number {
   if (!text.includes(" ")) return orpIndex(text);
-  let offset = 0;
-  let best = { start: 0, word: "" };
-  for (const word of text.split(" ")) {
-    if (word.length > best.word.length) best = { start: offset, word };
-    offset += word.length + 1;
+  const target = Math.round(text.length * 0.4);
+  for (let d = 0; d < text.length; d++) {
+    if (text[target - d] && text[target - d] !== " ") return target - d;
+    if (text[target + d] && text[target + d] !== " ") return target + d;
   }
-  return best.start + orpIndex(best.word);
+  return 0;
 }

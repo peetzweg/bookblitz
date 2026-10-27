@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { baseInterval } from "../reader/rsvp";
-import { buildFrames, DEFAULT_STYLE, frameWeight, paragraphEnds, rampFactor, STYLES, type StyleId } from "../reader/timing";
+import { buildFrames, DEFAULT_STYLE, frameDurationMs, paragraphEnds, rampFactor, STYLES, type StyleId } from "../reader/timing";
 import { tokenize } from "../epub/parse";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
@@ -23,7 +22,17 @@ const ORDER: StyleId[] = ["flow", "phrases", "calm"];
  */
 export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
   const current = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
+  const firstTime = useStore(library, (s) => !s.settings.styleChosen);
   const [selected, setSelected] = useState<StyleId>(current);
+
+  // The first time through, each style plays at its suggested speed; afterwards your own speed is kept.
+  const select = (id: StyleId) => {
+    setSelected(id);
+    if (firstTime) updateSettings({ wpm: STYLES[id].defaultWpm });
+  };
+  useEffect(() => {
+    if (firstTime) updateSettings({ wpm: STYLES[current].defaultWpm });
+  }, []);
 
   return (
     <div className="style-picker">
@@ -43,7 +52,7 @@ export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
               role="radio"
               aria-checked={selected === id}
               className={`style-option pressable ${selected === id ? "selected" : ""}`}
-              onClick={() => setSelected(id)}
+              onClick={() => select(id)}
             >
               <span className="style-option-text">
                 <span className="style-option-name">
@@ -85,8 +94,7 @@ function StylePreview({ style: id }: { style: StyleId }) {
     const start = starts[index];
     const end = starts[index + 1] ?? SAMPLE.length;
     const last = index >= starts.length - 1;
-    const delay =
-      baseInterval(wpm) * frameWeight(SAMPLE, start, end, SAMPLE_ENDS, style) * rampFactor(index, style) + (last ? LOOP_PAUSE_MS : 0);
+    const delay = frameDurationMs(SAMPLE, start, end, SAMPLE_ENDS, style, wpm, rampFactor(index, style)) + (last ? LOOP_PAUSE_MS : 0);
     const timer = setTimeout(() => setIndex(last ? 0 : index + 1), delay);
     return () => clearTimeout(timer);
   }, [index, starts, style, wpm]);

@@ -1,8 +1,18 @@
 import { db, type BookMeta, type ChapterContent } from "../store/db";
 import { library, markOpened, saveProgress, updateSettings } from "../store/library";
 import { createStore } from "../store/store";
-import { baseInterval, endsSentence } from "./rsvp";
-import { buildFrames, DEFAULT_STYLE, frameIndexOf, frameWeight, paragraphEnds, rampFactor, STYLES, type ReadingStyle } from "./timing";
+import { setEstimateWeight } from "./rsvp";
+import {
+  buildFrames,
+  DEFAULT_STYLE,
+  frameDurationMs,
+  frameIndexOf,
+  paragraphEnds,
+  rampFactor,
+  startsSentence,
+  STYLES,
+  type ReadingStyle,
+} from "./timing";
 
 interface ReaderState {
   book?: BookMeta;
@@ -133,7 +143,7 @@ export function stepSentence(direction: -1 | 1) {
   const { content, chapter, word } = reader.get();
   if (!content) return;
   const words = content[chapter].words;
-  const isStart = (i: number) => i === 0 || endsSentence(words[i - 1]) || paraEnds.has(i - 1);
+  const isStart = (i: number) => startsSentence(words, i, paraEnds);
 
   if (direction === 1) {
     for (let i = word + 1; i < words.length; i++) if (isStart(i)) return seek(chapter, i);
@@ -175,9 +185,10 @@ function tick(now: number) {
     const style = currentStyle();
     const words = state.content[state.chapter].words;
     // Pauses, length bonuses and the ramp-up only make sense reading forwards; backwards is a scan.
-    const weight = forward ? frameWeight(words, state.word, state.frameEnd, paraEnds, style) : state.frameEnd - state.word;
-    const ramp = forward ? rampFactor(framesInRun, style) : 1;
-    frameProgress += dt / (baseInterval(Math.abs(rate)) * weight * ramp);
+    const duration = forward
+      ? frameDurationMs(words, state.word, state.frameEnd, paraEnds, style, rate, rampFactor(framesInRun, style))
+      : ((state.frameEnd - state.word) * 60000) / -rate;
+    frameProgress += dt / duration;
     if (frameProgress >= 1) {
       frameProgress = Math.min(frameProgress - 1, 0.5);
       step(forward);
@@ -233,10 +244,12 @@ function indexChapter() {
 }
 
 // Switching styles mid-chapter re-cuts the frames around the current word.
+setEstimateWeight(currentStyle().meanWeight);
 library.subscribe(() => {
   const next = library.get().settings.style;
   if (next === styleId) return;
   styleId = next;
+  setEstimateWeight(currentStyle().meanWeight);
   indexChapter();
 });
 
