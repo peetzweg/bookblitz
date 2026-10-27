@@ -66,8 +66,8 @@ export default defineConfig({
     react(),
     seo(),
     VitePWA({
-      // "prompt" so the app decides when to swap in a new version (see src/pwa.ts): it updates on its
-      // own, but never with a reload mid-chapter.
+      // "prompt" so the app decides when to swap in a new version (see src/pwa.ts): only on a fresh
+      // start, never in the middle of a session.
       registerType: "prompt",
       // Icons, iOS launch screens and their <link> tags are generated from pwa-assets.config.ts.
       pwaAssets: { config: true, overrideManifestIcons: true, includeHtmlHeadLinks: true, injectThemeColor: false },
