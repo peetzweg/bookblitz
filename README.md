@@ -85,7 +85,6 @@ EPUBs, and [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app) generates the s
 | `src/ui/` | Screens, the reader sheet, transitions |
 | `docs/research/` | Research briefs behind the timing and the word-transition experiments |
 | `scripts/og/` | Renders the share image, video and README demo using the app's own timing |
-| [`PLAN.md`](PLAN.md) | Design notes: screens, reading engine, PWA |
 
 **Deploys:** every push to `main` builds to GitHub Pages ([workflow](.github/workflows/pages.yml)). The build
 reads `BASE_PATH` (where the app is served from) and `SITE_URL` (used for canonical and share links). Both

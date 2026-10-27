@@ -21,7 +21,7 @@ interface PwaState {
 const standalone = () =>
   matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-export const pwa = createStore<PwaState>({ updateReady: false, installed: standalone(), canPrompt: false });
+const pwa = createStore<PwaState>({ updateReady: false, installed: standalone(), canPrompt: false });
 
 let installPrompt: InstallPromptEvent | undefined;
 

@@ -63,7 +63,7 @@ let paraEnds = new Set<number>();
 let frameStarts: number[] = [0];
 let styleId = library.get().settings.style;
 
-export function currentStyle(): ReadingStyle {
+function currentStyle(): ReadingStyle {
   return STYLES[library.get().settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
 }
 let wakeLock: WakeLockSentinel | undefined;

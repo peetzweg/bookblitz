@@ -320,8 +320,6 @@ export const TRANSITION_GROUPS: { name: string; ids: TransitionId[] }[] = [
   { name: "Blur & afterimage", ids: ["focus", "smear", "echo", "trail"] },
 ];
 
-export const TRANSITION_ORDER: TransitionId[] = TRANSITION_GROUPS.flatMap((g) => g.ids);
-
 export const INTENSITIES: { id: Intensity; name: string }[] = [
   { id: "subtle", name: "Subtle" },
   { id: "noticeable", name: "Noticeable" },

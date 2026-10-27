@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 
-export interface ParsedChapter {
+interface ParsedChapter {
   title: string;
   words: string[];
   /** Word indices at which a new paragraph starts. */

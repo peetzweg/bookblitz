@@ -2,7 +2,7 @@ import { openDB, type DBSchema } from "idb";
 import type { StyleId } from "../reader/timing";
 import type { Intensity, TransitionId } from "../ui/transitions";
 
-export interface ChapterMeta {
+interface ChapterMeta {
   title: string;
   words: number;
 }

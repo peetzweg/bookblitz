@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 export type Route = { name: "library" } | { name: "book"; id: string } | { name: "settings" };
 
 /** The cover that morphs between a library tile and the book page. One element carries the name at a time. */
-export const COVER_TRANSITION = "book-cover";
+const COVER_TRANSITION = "book-cover";
 
 function parse(hash: string): Route {
   if (hash === "#/settings") return { name: "settings" };

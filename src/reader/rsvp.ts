@@ -2,7 +2,7 @@ const TRAILING_CLOSERS = /["'”’»)\]}*]+$/;
 const LEADING = /^[^\p{L}\p{N}]+/u;
 
 /** Index of the optimal recognition point: the letter the eye should fix on. */
-export function orpIndex(word: string): number {
+function orpIndex(word: string): number {
   const lead = word.match(LEADING)?.[0].length ?? 0;
   const core = word.slice(lead).replace(TRAILING_CLOSERS, "").replace(/[^\p{L}\p{N}]+$/u, "");
   const n = core.length;
@@ -10,11 +10,7 @@ export function orpIndex(word: string): number {
   return Math.min(lead + offset, Math.max(word.length - 1, 0));
 }
 
-export function endsSentence(word: string): boolean {
-  return /[.!?…]$/.test(word.replace(TRAILING_CLOSERS, ""));
-}
-
-export function baseInterval(wpm: number): number {
+function baseInterval(wpm: number): number {
   return 60000 / wpm;
 }
 
