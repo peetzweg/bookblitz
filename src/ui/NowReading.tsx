@@ -251,7 +251,7 @@ function Sheet() {
   );
 }
 
-/** wpm gained per pixel dragged down (or lost per pixel dragged up). */
+/** wpm gained per pixel dragged up (or lost per pixel dragged down). */
 const RATE_PER_PX = 3;
 /** Speeds this close to zero hold still, so there's a clear stop between forwards and backwards. */
 const HOLD_ZONE = 40;
@@ -264,8 +264,8 @@ const HINT_MS = 2600;
 
 /**
  * While reading, everything else steps away: the word sits alone in the middle of the sheet, with a
- * hairline of chapter progress. The whole sheet is the touch surface: tap to pause, drag down to speed
- * up, up to slow down, and keep going up to read backwards. Letting go carries on forwards.
+ * hairline of chapter progress. The whole sheet is the touch surface: tap to pause, drag up to speed
+ * up, down to slow down, and keep going down to read backwards. Letting go carries on forwards.
  */
 function ReadingOverlay() {
   const playing = useStore(reader, (s) => s.playing);
@@ -306,7 +306,8 @@ function ReadingOverlay() {
       onPointerMove={(e) => {
         const g = gesture.current;
         if (!g) return;
-        const dy = e.clientY - g.y;
+        // Up is faster (screen y grows downwards).
+        const dy = g.y - e.clientY;
         if (!g.moved && Math.abs(dy) < MOVE_THRESHOLD) return;
         g.moved = true;
         const raw = g.base + (dy - Math.sign(dy) * MOVE_THRESHOLD) * RATE_PER_PX;
@@ -327,7 +328,7 @@ function ReadingOverlay() {
         </div>
         <WordDisplay />
       </div>
-      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↓ faster, ↑ slower</div>
+      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↑ faster, ↓ slower</div>
       <ChapterHairline />
     </div>
   );

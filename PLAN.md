@@ -43,8 +43,8 @@ Every book is in one of three states: **unread**, **reading** or **finished**.
   length) with a Start button. When the last word of a chapter is read, reading stops and a completion
   screen celebrates it, shows book progress, and offers the next chapter as Up Next, which you start
   on purpose. The last chapter ends on a "Book finished" screen.
-- **Speed gesture.** While reading, hold the word and drag: down is faster, up is slower. Past a short
-  stop zone, up reads backwards, faster the further you go. Letting go carries on forwards: at the new
+- **Speed gesture.** While reading, hold the word and drag: up is faster, down is slower. Past a short
+  stop zone, down reads backwards, faster the further you go. Letting go carries on forwards: at the new
   speed if you sped up or slowed down, at the previous speed if you went backwards. A tap without
   dragging pauses.
 - The chapter name at the top of the reader opens the chapter index (read chapters checked); tap one to jump.
