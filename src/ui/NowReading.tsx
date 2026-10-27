@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { pause, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
+import { pause, play, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
 import type { ReaderFont } from "../store/db";
 import { library, updateSettings } from "../store/library";
@@ -156,12 +156,11 @@ function Sheet() {
               ) : atChapterStart ? (
                 <ChapterIntro />
               ) : (
-                <>
-                  <Stage startDrag={startDrag} dragged={dragged} />
-                  <div className={`context-wrap ${playing ? "hidden" : ""}`}>
-                    <ContextView />
-                  </div>
-                </>
+                // Paused: the text around the current word, which is highlighted in place of the big
+                // word. Tapping a word jumps there; tapping anywhere else carries on reading.
+                <div className="context-wrap" onClick={play}>
+                  <ContextView />
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
@@ -203,6 +202,7 @@ function Sheet() {
             </button>
           </div>
         </div>
+        <ReadingOverlay />
       </motion.section>
     </>
   );
@@ -216,15 +216,27 @@ const MAX_FORWARD = 1000;
 const MAX_REVERSE = 600;
 const MOVE_THRESHOLD = 8;
 
+/** How long the gesture hint stays up after reading starts. */
+const HINT_MS = 2600;
+
 /**
- * The word, plus the speed gesture while reading: drag down to speed up, up to slow down, and keep going
- * up to read backwards. Letting go carries on forwards. A tap without dragging pauses.
+ * While reading, everything else steps away: the word sits alone in the middle of the sheet, with a
+ * hairline of chapter progress. The whole sheet is the touch surface: tap to pause, drag down to speed
+ * up, up to slow down, and keep going up to read backwards. Letting go carries on forwards.
  */
-function Stage({ startDrag, dragged }: { startDrag: (e: React.PointerEvent) => void; dragged: React.RefObject<boolean> }) {
+function ReadingOverlay() {
   const playing = useStore(reader, (s) => s.playing);
   const rate = useStore(reader, (s) => s.rate);
   const gesture = useRef<{ y: number; base: number; moved: boolean; rate: number } | null>(null);
   const suppressClick = useRef(false);
+  const [hint, setHint] = useState(false);
+
+  useEffect(() => {
+    if (!playing) return setHint(false);
+    setHint(true);
+    const timer = setTimeout(() => setHint(false), HINT_MS);
+    return () => clearTimeout(timer);
+  }, [playing]);
 
   const end = () => {
     const g = gesture.current;
@@ -238,14 +250,15 @@ function Stage({ startDrag, dragged }: { startDrag: (e: React.PointerEvent) => v
 
   return (
     <div
-      className={`stage ${playing ? "playing" : ""}`}
+      className={`reading-overlay ${playing ? "visible" : ""}`}
+      aria-hidden={!playing}
       onPointerDown={(e) => {
         suppressClick.current = false;
-        dragged.current = false;
-        if (!reader.get().playing) return startDrag(e);
+        if (!reader.get().playing) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const base = library.get().settings.wpm;
         gesture.current = { y: e.clientY, base, moved: false, rate: base };
+        setHint(false);
       }}
       onPointerMove={(e) => {
         const g = gesture.current;
@@ -261,28 +274,30 @@ function Stage({ startDrag, dragged }: { startDrag: (e: React.PointerEvent) => v
       onPointerUp={end}
       onPointerCancel={end}
       onClick={() => {
-        if (dragged.current || suppressClick.current) return;
-        toggle();
+        if (!suppressClick.current) pause();
       }}
     >
-      <AnimatePresence>
-        {rate !== null && (
-          <motion.div
-            className={`speed-hud ${rate < 0 ? "reverse" : ""}`}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ type: "spring", bounce: 0, duration: 0.2 }}
-          >
-            {rate > 0 ? <ForwardIcon size={13} /> : rate < 0 ? <BackIcon size={13} /> : <PauseIcon size={11} />}
-            <span>{rate === 0 ? "Hold" : `${Math.abs(rate)} wpm${rate < 0 ? " back" : ""}`}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <WordDisplay />
-      <div className="stage-hint">
-        {playing ? (rate === null ? "" : "↓ faster · ↑ slower") : "Tap to read · drag while reading to change speed"}
+      <div className="reading-word">
+        <div className={`speed-hud ${rate !== null ? "shown" : ""} ${rate !== null && rate < 0 ? "reverse" : ""}`}>
+          {rate === null || rate > 0 ? <ForwardIcon size={13} /> : rate < 0 ? <BackIcon size={13} /> : <PauseIcon size={11} />}
+          <span>{rate === null ? "" : rate === 0 ? "Hold" : `${Math.abs(rate)} wpm${rate < 0 ? " back" : ""}`}</span>
+        </div>
+        <WordDisplay />
       </div>
+      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↓ faster, ↑ slower</div>
+      <ChapterHairline />
+    </div>
+  );
+}
+
+function ChapterHairline() {
+  const fraction = useStore(reader, (s) => {
+    const total = s.content?.[s.chapter]?.words.length ?? 0;
+    return total ? Math.round(((s.word + 1) / total) * 400) / 400 : 0;
+  });
+  return (
+    <div className="chapter-hairline">
+      <div style={{ transform: `scaleX(${fraction})` }} />
     </div>
   );
 }

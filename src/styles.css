@@ -1342,30 +1342,6 @@ ol {
   margin-top: 8px;
 }
 
-.speed-hud {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  translate: -50% 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgb(var(--ink) / 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.speed-hud.reverse {
-  background: color-mix(in oklab, var(--focus) 70%, transparent);
-}
-
 .sheet-chapter,
 .sheet-book {
   white-space: nowrap;
@@ -1383,52 +1359,44 @@ ol {
   color: var(--sheet-fg-2);
 }
 
-.stage {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  height: clamp(170px, 28dvh, 260px);
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.stage-hint {
-  position: absolute;
-  bottom: 10px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--sheet-fg-3);
-  pointer-events: none;
-}
-
 .rsvp {
-  --guide: rgb(var(--ink) / 0.16);
-  --tick: rgb(var(--ink) / 0.45);
+  /* Where the focus letter sits: left of centre, because a word runs further right of it than left. */
+  --pivot: 40%;
+  --guide: rgb(var(--ink) / 0.14);
+  --tick: rgb(var(--ink) / 0.4);
   width: 100%;
-  font-size: calc(clamp(34px, 10.5vw, 58px) * var(--word-scale, 1));
+  font-size: clamp(36px, 11vw, 64px);
   font-weight: 500;
   letter-spacing: -0.005em;
 }
 
-.rsvp-word,
-.rsvp-guide {
-  display: grid;
-  grid-template-columns: minmax(0, 36fr) auto minmax(0, 64fr);
+/* Fixed height: a long word shrinks inside the row instead of resizing it. */
+.rsvp-word {
+  position: relative;
+  height: 1.6em;
+}
+
+.rsvp-anchor {
+  position: absolute;
+  left: var(--pivot);
+  top: 50%;
+  /* Only the focus letter is in flow, so this centres exactly that letter on the pivot. */
+  transform: translate(-50%, -50%);
+  font-size: calc(1em * var(--word-scale, 1));
+  line-height: 1;
   white-space: pre;
 }
 
-.rsvp-word {
-  line-height: 1.5;
+.rsvp-before {
+  position: absolute;
+  right: 100%;
+  top: 0;
 }
 
-.rsvp-before {
-  display: flex;
-  justify-content: flex-end;
+.rsvp-after {
+  position: absolute;
+  left: 100%;
+  top: 0;
 }
 
 .rsvp-focus {
@@ -1437,36 +1405,24 @@ ol {
 
 .rsvp-guide {
   position: relative;
-  height: 16px;
-  line-height: 16px;
+  height: 14px;
+}
+
+.rsvp-guide::before,
+.rsvp-guide::after {
+  content: "";
+  position: absolute;
 }
 
 .rsvp-guide::before {
-  content: "";
-  position: absolute;
   left: 0;
   right: 0;
   height: 1px;
   background: var(--guide);
 }
 
-.rsvp-guide.top::before {
-  top: 0;
-}
-
-.rsvp-guide.bottom::before {
-  bottom: 0;
-}
-
-.rsvp-tick {
-  position: relative;
-  color: transparent;
-}
-
-.rsvp-tick::after {
-  content: "";
-  position: absolute;
-  left: 50%;
+.rsvp-guide::after {
+  left: var(--pivot);
   width: 2px;
   height: 12px;
   border-radius: 1px;
@@ -1474,11 +1430,13 @@ ol {
   transform: translateX(-50%);
 }
 
-.rsvp-guide.top .rsvp-tick::after {
+.rsvp-guide.top::before,
+.rsvp-guide.top::after {
   top: 0;
 }
 
-.rsvp-guide.bottom .rsvp-tick::after {
+.rsvp-guide.bottom::before,
+.rsvp-guide.bottom::after {
   bottom: 0;
 }
 
@@ -1490,9 +1448,107 @@ ol {
   -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
 }
 
-.context-wrap.hidden {
+/* ---------- Reading overlay ---------- */
+
+/*
+ * While reading: the word alone on the sheet. It covers everything with the sheet's own background, so
+ * the controls don't have to move or fade one by one. In over 250ms so the first word lands as it
+ * settles; out in 150ms, because a pause should feel instant.
+ */
+.reading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--sheet-bg);
   opacity: 0;
   pointer-events: none;
+  touch-action: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 150ms var(--ease-out);
+}
+
+.reading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: 250ms;
+}
+
+.reading-word {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.speed-hud {
+  position: absolute;
+  bottom: calc(100% + 18px);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(var(--ink) / 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out);
+}
+
+.speed-hud.shown {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.speed-hud.reverse {
+  background: color-mix(in oklab, var(--focus) 35%, transparent);
+}
+
+.reading-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 40px);
+  text-align: center;
+  font-size: 13px;
+  color: var(--sheet-fg-3);
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.reading-hint.shown {
+  opacity: 1;
+}
+
+.chapter-hairline {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: calc(var(--safe-bottom) + 20px);
+  max-width: 512px;
+  margin: 0 auto;
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(var(--ink) / 0.08);
+  overflow: hidden;
+}
+
+.chapter-hairline > div {
+  height: 100%;
+  background: rgb(var(--ink) / 0.3);
+  transform-origin: left;
 }
 
 .context {

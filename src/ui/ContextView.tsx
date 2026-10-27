@@ -9,7 +9,11 @@ const PARAGRAPHS_AFTER = 4;
 export function ContextView() {
   const content = useStore(reader, (s) => s.content);
   const chapter = useStore(reader, (s) => s.chapter);
-  const word = useStore(reader, (s) => s.word);
+  // Hidden behind the reading overlay while playing, so don't re-render hundreds of words per word.
+  const live = useStore(reader, (s) => (s.playing ? null : s.word));
+  const lastWord = useRef(0);
+  if (live !== null) lastWord.current = live;
+  const word = lastWord.current;
   const scroller = useRef<HTMLDivElement>(null);
 
   const chapterContent = content?.[chapter];
@@ -25,11 +29,19 @@ export function ContextView() {
     return lo;
   }, [chapterContent, word]);
 
+  // Keep the current word in the clearly visible middle band (the edges fade out). A word you tapped is
+  // already there, so tapping never scrolls the text under your finger; a pause or a skip that left the
+  // word out of view brings it back to the centre.
   useLayoutEffect(() => {
     const box = scroller.current;
     const el = box?.querySelector<HTMLElement>(".ctx-current");
-    if (box && el) box.scrollTop = el.offsetTop - box.clientHeight / 2 + el.offsetHeight / 2;
-  }, [paragraphIndex, chapter]);
+    if (!box || !el) return;
+    const margin = box.clientHeight * 0.22;
+    const top = el.offsetTop - box.scrollTop;
+    if (top < margin || top + el.offsetHeight > box.clientHeight - margin) {
+      box.scrollTop = el.offsetTop - box.clientHeight / 2 + el.offsetHeight / 2;
+    }
+  }, [word, chapter]);
 
   if (!chapterContent) return null;
   const { words, paras } = chapterContent;
