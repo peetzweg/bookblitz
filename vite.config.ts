@@ -26,6 +26,9 @@ const siteUrl = (
   ""
 ).replace(/\/$/, "");
 
+/** Where the app is served from: "/" on Vercel, "/bookblitz/" on GitHub Pages (set by the workflow). */
+const base = process.env.BASE_PATH ?? "/";
+
 /** Fills %SITE_URL% in index.html, and writes robots.txt plus a sitemap when the origin is known. */
 function seo(): Plugin {
   return {
@@ -49,6 +52,7 @@ function seo(): Plugin {
 }
 
 export default defineConfig({
+  base,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __COMMIT__: JSON.stringify(commit),
@@ -62,12 +66,14 @@ export default defineConfig({
       // Icons, iOS launch screens and their <link> tags are generated from pwa-assets.config.ts.
       pwaAssets: { config: true, overrideManifestIcons: true, includeHtmlHeadLinks: true, injectThemeColor: false },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,epub}"],
+        // No webmanifest here: the plugin adds it itself, and a second entry with another revision makes
+        // Workbox reject the whole precache list, which silently leaves the app without offline support.
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,epub}"],
         // Launch screens are large and only read by iOS at install time.
         globIgnores: ["**/apple-splash-*", "**/og.*"],
       },
       manifest: {
-        id: "/",
+        id: base,
         name: "bookblitz",
         short_name: "bookblitz",
         description: "Speed-read your own EPUBs, one word at a time. Local first: your books stay on your device.",
@@ -76,8 +82,8 @@ export default defineConfig({
         display: "standalone",
         categories: ["books", "education"],
         // Shown in Android's and desktop Chrome's richer install dialog.
-        screenshots: [{ src: "/og.png", sizes: "1200x630", type: "image/png", form_factor: "wide", label: "The bookblitz reader" }],
-        shortcuts: [{ name: "Continue Reading", short_name: "Continue", url: "/?resume=1" }],
+        screenshots: [{ src: `${base}og.png`, sizes: "1200x630", type: "image/png", form_factor: "wide", label: "The bookblitz reader" }],
+        shortcuts: [{ name: "Continue Reading", short_name: "Continue", url: `${base}?resume=1` }],
       },
     }),
   ],

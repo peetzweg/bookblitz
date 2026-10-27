@@ -16,7 +16,7 @@ export function InstallCard() {
 
   return (
     <section className="install-card">
-      <img className="install-icon" src="/apple-touch-icon-180x180.png" alt="" />
+      <img className="install-icon" src={`${import.meta.env.BASE_URL}apple-touch-icon-180x180.png`} alt="" />
       <div className="install-body">
         <div className="install-title">Add bookblitz to your Home Screen</div>
         {canPrompt ? (

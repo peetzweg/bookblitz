@@ -50,7 +50,7 @@ Every book is in one of three states: **unread**, **reading** or **finished**.
 - The chapter name at the top of the reader opens the chapter index (read chapters checked); tap one to jump.
 - Tap the word to play or pause. When paused, the surrounding text shows up with the current word
   highlighted, and tapping any word jumps to it.
-- Back / forward jump by sentence. Keyboard: space, ← →, ↑ ↓ for WPM.
+- Back / forward jump by sentence. Keyboard: space plays or pauses, ↑ → faster, ↓ ← slower, Shift ← → jumps a sentence, Esc closes.
 - Screen Wake Lock is held while reading.
 
 ## Reading styles

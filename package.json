@@ -2,7 +2,27 @@
   "name": "bookblitz",
   "private": true,
   "version": "0.1.0",
+  "description": "A local-first speed reader for your own EPUBs: one word at a time, offline, nothing uploaded.",
+  "keywords": [
+    "speed-reading",
+    "rsvp",
+    "epub",
+    "epub-reader",
+    "local-first",
+    "offline-first",
+    "pwa",
+    "react",
+    "vite"
+  ],
+  "homepage": "https://peetzweg.github.io/bookblitz/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peetzweg/bookblitz.git"
+  },
+  "license": "MIT",
+  "author": "peetzweg <phil.czek@gmail.com>",
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
