@@ -1,11 +1,13 @@
 import { AnimatePresence, motion, useDragControls } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { pause, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
 import type { ReaderFont } from "../store/db";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
 import { ChapterComplete, ChapterIntro } from "./ChapterCards";
+import { Cover } from "./Cover";
+import { land, takeOff } from "./coverFlight";
 import { ContextView } from "./ContextView";
 import { BackIcon, CheckIcon, ChevronDownIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
@@ -40,8 +42,23 @@ function Sheet() {
   const [showChapters, setShowChapters] = useState(false);
   const dragControls = useDragControls();
   const dragged = useRef(false);
+  const sheetRef = useRef<HTMLElement>(null);
+
+  /** The big cover on a chapter card if one is showing, else the one in the header. */
+  const flightTarget = () =>
+    sheetRef.current?.querySelector<HTMLElement>('[data-flight-target="hero"]') ??
+    sheetRef.current?.querySelector<HTMLElement>('[data-flight-target="header"]');
+
+  // The sheet mounts at translateY(100%); land the cover where it will be once the slide finishes.
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    const offset = sheet.getBoundingClientRect().top - parseFloat(getComputedStyle(sheet).top);
+    land(flightTarget(), offset);
+  }, []);
 
   const close = () => {
+    takeOff(flightTarget());
     pause();
     setOpen(false);
   };
@@ -80,6 +97,7 @@ function Sheet() {
         transition={SHEET_SPRING}
       />
       <motion.section
+        ref={sheetRef}
         className="sheet"
         style={{ "--tint": book.tint ?? "60 60 70" } as React.CSSProperties}
         initial={{ y: "100%" }}
@@ -104,6 +122,7 @@ function Sheet() {
               <button className="icon-button" onClick={close} aria-label="Close reader">
                 <ChevronDownIcon size={26} />
               </button>
+              <Cover book={book} className="sheet-cover" flightTarget="header" />
               <button
                 className="sheet-heading"
                 aria-label="Show chapters"
@@ -118,7 +137,6 @@ function Sheet() {
                   Chapter {chapter + 1} of {book.chapters.length} · {book.title}
                 </div>
               </button>
-              <div className="icon-button-spacer" />
             </div>
           </header>
 

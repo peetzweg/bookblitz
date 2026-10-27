@@ -6,8 +6,9 @@ import type { BookMeta, Progress } from "../store/db";
 import { addSampleBook, bookStatus, library, percentRead, resetLibrary, retryLibrary, type BookStatus } from "../store/library";
 import { useStore } from "../store/store";
 import { Cover } from "./Cover";
+import { takeOff } from "./coverFlight";
 import { BookIcon, CheckCircleIcon, PlayIcon, PlusIcon } from "./icons";
-import { navigate } from "./router";
+import { openBookPage } from "./router";
 
 type Filter = "all" | BookStatus;
 
@@ -92,7 +93,7 @@ export function Library({ onAdd }: { onAdd: () => void }) {
           <h2 className="section-title">Recently Added</h2>
           <div className="shelf">
             {recentlyAdded.map((book) => (
-              <BookTile key={book.id} book={book} progress={progress[book.id]} wpm={wpm} />
+              <BookTile key={book.id} book={book} progress={progress[book.id]} wpm={wpm} slot="shelf" />
             ))}
           </div>
         </section>
@@ -104,7 +105,7 @@ export function Library({ onAdd }: { onAdd: () => void }) {
           {books.length > 1 && <Segmented value={filter} onChange={setFilter} />}
           <div className="grid">
             {filtered.map((book) => (
-              <BookTile key={book.id} book={book} progress={progress[book.id]} wpm={wpm} />
+              <BookTile key={book.id} book={book} progress={progress[book.id]} wpm={wpm} slot="grid" />
             ))}
             {importing > 0 && (
               <div className="tile">
@@ -143,9 +144,9 @@ function ReadingCard({ book, progress, wpm }: { book: BookMeta; progress: Progre
     <div
       className="reading-card pressable"
       style={{ "--tint": book.tint ?? "70 70 80" } as React.CSSProperties}
-      onClick={() => navigate({ name: "book", id: book.id })}
+      onClick={(e) => openBookPage(book.id, e.currentTarget.querySelector<HTMLElement>(".cover"))}
     >
-      <Cover book={book} className="reading-card-cover" />
+      <Cover book={book} className="reading-card-cover" coverKey={`card:${book.id}`} />
       <div className="reading-card-body">
         <div className="reading-card-kicker">
           Chapter {progress.chapter + 1} of {book.chapters.length}
@@ -164,6 +165,7 @@ function ReadingCard({ book, progress, wpm }: { book: BookMeta; progress: Progre
             aria-label={`Resume ${book.title}`}
             onClick={(e) => {
               e.stopPropagation();
+              takeOff(e.currentTarget.closest(".reading-card")?.querySelector<HTMLElement>(".cover"));
               openBook(book.id);
             }}
           >
@@ -175,7 +177,7 @@ function ReadingCard({ book, progress, wpm }: { book: BookMeta; progress: Progre
   );
 }
 
-function BookTile({ book, progress, wpm }: { book: BookMeta; progress?: Progress; wpm: number }) {
+function BookTile({ book, progress, wpm, slot }: { book: BookMeta; progress?: Progress; wpm: number; slot: string }) {
   const status = bookStatus(progress);
   const pct = percentRead(book, progress);
   const detail =
@@ -186,9 +188,12 @@ function BookTile({ book, progress, wpm }: { book: BookMeta; progress?: Progress
         : `New · ${formatDuration(estimateMs(book.totalWords, wpm), true)}`;
 
   return (
-    <button className={`tile pressable ${status}`} onClick={() => navigate({ name: "book", id: book.id })}>
+    <button
+      className={`tile pressable ${status}`}
+      onClick={(e) => openBookPage(book.id, e.currentTarget.querySelector<HTMLElement>(".cover"))}
+    >
       <div className="tile-cover">
-        <Cover book={book} />
+        <Cover book={book} coverKey={`${slot}:${book.id}`} />
         {status === "reading" && (
           <div className="cover-progress">
             <div className="cover-progress-fill" style={{ width: `${Math.max(pct, 0.03) * 100}%` }} />

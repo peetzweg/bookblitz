@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { openBook, reader } from "./reader/reader";
 import { addSampleBook, importFiles, library, loadLibrary, retryLibrary } from "./store/library";
 import { useStore } from "./store/store";
@@ -6,7 +6,7 @@ import { BookPage } from "./ui/BookPage";
 import { Library } from "./ui/Library";
 import { MiniPlayer } from "./ui/MiniPlayer";
 import { NowReading } from "./ui/NowReading";
-import { useRoute } from "./ui/router";
+import { savedScroll, useRoute } from "./ui/router";
 
 export function App() {
   const route = useRoute();
@@ -32,8 +32,10 @@ export function App() {
     });
   }, []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  // Layout effect so it runs inside a View Transition's update, before the new page is captured:
+  // the library comes back where you left it, so a cover can morph back into its own tile.
+  useLayoutEffect(() => {
+    window.scrollTo(0, savedScroll(route));
   }, [route]);
 
   useEffect(() => {

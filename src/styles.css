@@ -1136,11 +1136,27 @@ ol {
   color: var(--sheet-fg-2);
 }
 
+.sheet-cover {
+  flex: none;
+  width: 32px;
+  margin: 0 10px 0 2px;
+  border-radius: 4px;
+}
+
+/* One cover at a time: while a chapter card shows the big one, the header's steps aside. */
+.sheet-header .sheet-cover {
+  transition: opacity 200ms var(--ease-out);
+}
+
+.sheet:has([data-flight-target="hero"]) .sheet-header .sheet-cover {
+  opacity: 0;
+}
+
 .sheet-heading {
   flex: 1;
   min-width: 0;
-  text-align: center;
-  padding: 4px 0;
+  text-align: left;
+  padding: 4px 8px 4px 0;
   border-radius: 10px;
 }
 
@@ -1168,6 +1184,14 @@ ol {
   gap: 10px;
   padding: 12px 8px;
   overflow-y: auto;
+}
+
+.card-cover {
+  width: min(30vw, 124px);
+  flex: none;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  box-shadow: 0 18px 36px -14px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
 }
 
 .card-kicker {
@@ -1716,11 +1740,12 @@ ol {
   width: max-content;
   max-width: calc(100vw - 32px);
   text-align: center;
-  animation: toast-in 300ms var(--ease-out);
-}
+  /* A transition, not keyframes: a new toast replacing an old one retargets instead of restarting. */
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 300ms var(--ease-out);
 
-@keyframes toast-in {
-  from {
+  @starting-style {
     opacity: 0;
     transform: translate(-50%, -8px);
   }
@@ -1769,6 +1794,57 @@ ol {
   pointer-events: none;
 }
 
+/* ---------- Page transitions ---------- */
+
+/*
+ * Library <-> book page. The tapped cover morphs into the book page's cover (and back) on the iOS
+ * drawer curve; the pages themselves cross-fade underneath it. The mini player has its own name so it
+ * holds still instead of fading out and in with the page.
+ */
+.book-cover {
+  view-transition-name: book-cover;
+}
+
+.mini-player {
+  view-transition-name: mini-player;
+}
+
+::view-transition-group(book-cover) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-sheet);
+}
+
+/* Same image on both ends: show the new one straight away instead of cross-fading two copies. */
+::view-transition-old(book-cover) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(book-cover) {
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation: page-out 180ms var(--ease-out) both;
+}
+
+::view-transition-new(root) {
+  animation: page-in 300ms var(--ease-out) both;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 /* ---------- Hover (precise pointers only) ---------- */
 
 @media (hover: hover) and (pointer: fine) {
@@ -1790,6 +1866,12 @@ ol {
 /* ---------- Accessibility ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
   .app,
   .pressable,
   .equalizer.playing i {

@@ -4,6 +4,7 @@ import { useStore } from "../store/store";
 import { closeBook, openBook, reader, seek } from "../reader/reader";
 import { estimateMs, formatDuration } from "../reader/rsvp";
 import { Cover } from "./Cover";
+import { takeOff } from "./coverFlight";
 import { CheckCircleIcon, CheckIcon, ChevronLeftIcon, PlayIcon, RestartIcon } from "./icons";
 import { goBack } from "./router";
 
@@ -43,6 +44,12 @@ export function BookPage({ id }: { id: string }) {
   const current = loaded && (playing || status !== "finished") ? activeChapter : status === "reading" ? progress!.chapter : -1;
   const pct = percentRead(book, progress);
   const left = formatDuration(estimateMs(book.totalWords * (1 - pct), wpm));
+
+  /** Opens the reader with this page's cover flying into it. */
+  const startReading = (opts?: Parameters<typeof openBook>[1]) => {
+    takeOff(document.querySelector<HTMLElement>(".book-cover"));
+    return opts ? openBook(book.id, opts) : openBook(book.id);
+  };
 
   const markFinished = (finished: boolean) => {
     if (loaded) {
@@ -93,21 +100,21 @@ export function BookPage({ id }: { id: string }) {
         <div className={`book-actions ${status === "reading" ? "" : "single"}`}>
           {status === "reading" && (
             <>
-              <button className="pill-button" onClick={() => openBook(book.id)}>
+              <button className="pill-button" onClick={() => startReading()}>
                 <PlayIcon size={16} /> Resume
               </button>
-              <button className="pill-button" onClick={() => openBook(book.id, { chapter: 0, word: 0 })}>
+              <button className="pill-button" onClick={() => startReading({ chapter: 0, word: 0 })}>
                 <RestartIcon size={16} /> From Start
               </button>
             </>
           )}
           {status === "new" && (
-            <button className="pill-button filled" onClick={() => openBook(book.id, { chapter: 0, word: 0 })}>
+            <button className="pill-button filled" onClick={() => startReading({ chapter: 0, word: 0 })}>
               <PlayIcon size={16} /> Start Reading
             </button>
           )}
           {status === "finished" && (
-            <button className="pill-button" onClick={() => openBook(book.id, { chapter: 0, word: 0 })}>
+            <button className="pill-button" onClick={() => startReading({ chapter: 0, word: 0 })}>
               <RestartIcon size={16} /> Read Again
             </button>
           )}
@@ -124,7 +131,7 @@ export function BookPage({ id }: { id: string }) {
             <li key={i}>
               <button
                 className={`chapter-row pressable ${isCurrent ? "current" : ""} ${read ? "read" : ""}`}
-                onClick={() => (isCurrent ? openBook(book.id) : openBook(book.id, { chapter: i, word: 0 }))}
+                onClick={() => (isCurrent ? startReading() : startReading({ chapter: i, word: 0 }))}
               >
                 <span className="chapter-index">{isCurrent ? <Equalizer playing={playing} /> : i + 1}</span>
                 <span className="chapter-main">

@@ -3,6 +3,7 @@ import { play, reader, seek } from "../reader/reader";
 import { estimateMs, formatDuration } from "../reader/rsvp";
 import { library } from "../store/library";
 import { useStore } from "../store/store";
+import { Cover } from "./Cover";
 import { CheckIcon, PlayIcon, RestartIcon } from "./icons";
 
 const RISE = { type: "spring", bounce: 0, duration: 0.5 } as const;
@@ -16,6 +17,7 @@ export function ChapterIntro() {
 
   return (
     <div className="chapter-card">
+      <Cover book={book} className="card-cover" flightTarget="hero" />
       <motion.div className="card-kicker" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={RISE}>
         Chapter {index + 1} of {book.chapters.length}
       </motion.div>

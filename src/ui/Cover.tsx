@@ -15,7 +15,16 @@ function coverUrl(book: BookMeta): string | undefined {
 }
 
 /** Book cover, or a generated one for EPUBs that ship without art. */
-export function Cover({ book, className = "" }: { book: BookMeta; className?: string }) {
+interface CoverProps {
+  book: BookMeta;
+  className?: string;
+  /** Identifies this placement so a page transition can morph back into it. */
+  coverKey?: string;
+  /** Marks a spot in the reader the flying cover can land on. */
+  flightTarget?: "header" | "hero";
+}
+
+export function Cover({ book, className = "", coverKey, flightTarget }: CoverProps) {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
@@ -23,12 +32,24 @@ export function Cover({ book, className = "" }: { book: BookMeta; className?: st
 
   const src = coverUrl(book);
   if (src && !failed) {
-    return <img className={`cover ${className}`} src={src} alt="" draggable={false} onError={() => setFailed(true)} />;
+    return (
+      <img
+        className={`cover ${className}`}
+        data-cover-key={coverKey}
+        data-flight-target={flightTarget}
+        src={src}
+        alt=""
+        draggable={false}
+        onError={() => setFailed(true)}
+      />
+    );
   }
   const hue = [...book.title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
   return (
     <div
       className={`cover cover-generated ${className}`}
+      data-cover-key={coverKey}
+      data-flight-target={flightTarget}
       style={{ background: `linear-gradient(160deg, hsl(${hue} 45% 42%), hsl(${(hue + 40) % 360} 55% 22%))` }}
     >
       <span className="cover-generated-title">{book.title}</span>
