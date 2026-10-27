@@ -99,6 +99,11 @@ function Sheet() {
     dragControls.start(e);
   };
 
+  // Chapter cards are a moment of their own: their Start button is the only control they need.
+  const choosing = askStyle || showStyles;
+  const onCard = !choosing && !showChapters && (completed !== null || atChapterStart);
+  const sheetMode = choosing ? "choosing-style" : onCard ? "on-card" : "";
+
   return (
     <>
       <motion.div
@@ -127,7 +132,7 @@ function Sheet() {
         }}
         aria-label="Now Reading"
       >
-        <div className={`sheet-inner reader-font-${font} ${askStyle || showStyles ? "choosing-style" : ""}`}>
+        <div className={`sheet-inner reader-font-${font} ${sheetMode}`}>
           <header className="sheet-header" onPointerDown={startDrag}>
             <div className="grabber" />
             <div className="sheet-header-row">
