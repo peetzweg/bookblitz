@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Renders the share image and video into public/: og.png (1200×630) and og.mp4, the sample passage
+# Renders the share image and video into public/ (og.png, 1200×630, and og.mp4), plus the README demo
+# docs/demo.gif. The video reads the sample passage
 # read word by word with the app's own timing. Needs Google Chrome and ffmpeg.
 # Run from the repo root: scripts/og/render.sh
 set -euo pipefail
@@ -33,3 +34,9 @@ printf "file '%s'\n" "$WORK/$((COUNT - 1)).png" >> "$WORK/list.txt"
 ffmpeg -y -loglevel error -f concat -safe 0 -i "$WORK/list.txt" \
   -vf "fps=30,format=yuv420p" -c:v libx264 -preset slow -crf 24 -tune stillimage -movflags +faststart -an public/og.mp4
 ls -la public/og.png public/og.mp4
+
+# The README demo: just the reader, cropped from the video. GitHub plays GIFs inline, but not repo videos.
+ffmpeg -y -loglevel error -i public/og.mp4 \
+  -vf "crop=1200:250:0:140,scale=800:-1:flags=lanczos,fps=20,split[a][b];[a]palettegen=max_colors=32:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" \
+  -loop 0 docs/demo.gif
+ls -la docs/demo.gif

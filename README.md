@@ -14,7 +14,9 @@
 </p>
 
 <p align="center">
-  <img src="public/og.png" width="720" alt="The word “Wonderland” in the bookblitz reader, its focus letter in green">
+  <img src="docs/demo.gif" width="720" alt="The opening lines of Alice in Wonderland flashing one word at a time in the bookblitz reader, each word's focus letter in green on a fixed mark">
+  <br>
+  <sub>The opening of <em>Alice in Wonderland</em> at 300 words per minute, timed by the app's own reader.</sub>
 </p>
 
 bookblitz is a speed reader for books you already have. Drop in an EPUB and read it one word at a time,
@@ -73,7 +75,7 @@ EPUBs, and [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app) generates the s
 | `src/store/` | IndexedDB and the library store |
 | `src/ui/` | Screens, the reader sheet, transitions |
 | `docs/research/` | Research briefs behind the timing and the word-transition experiments |
-| `scripts/og/` | Renders the share image and video using the app's own timing |
+| `scripts/og/` | Renders the share image, video and README demo using the app's own timing |
 | [`PLAN.md`](PLAN.md) | Design notes: screens, reading engine, PWA |
 
 **Deploys:** every push to `main` builds to GitHub Pages ([workflow](.github/workflows/pages.yml)). The build
