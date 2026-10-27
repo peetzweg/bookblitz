@@ -39,6 +39,15 @@ Every book is in one of three states: **unread**, **reading** or **finished**.
   fixed horizontal position (slightly left of centre) between two guide rules with tick marks.
 - Timing per word: `60000 / wpm`, multiplied for punctuation (sentence end ×2.2, clause ×1.5),
   paragraph end ×2.6, long words, and numbers. It ramps up over the first few words after you press play.
+- **Chapters are sessions.** Every chapter opens on a full-screen title card ("Chapter 3 of 15", title,
+  length) with a Start button. When the last word of a chapter is read, reading stops and a completion
+  screen celebrates it, shows book progress, and offers the next chapter as Up Next, which you start
+  on purpose. The last chapter ends on a "Book finished" screen.
+- **Speed gesture.** While reading, hold the word and drag: down is faster, up is slower. Past a short
+  stop zone, up reads backwards, faster the further you go. Letting go carries on forwards: at the new
+  speed if you sped up or slowed down, at the previous speed if you went backwards. A tap without
+  dragging pauses.
+- The chapter name at the top of the reader opens the chapter index (read chapters checked); tap one to jump.
 - Tap the word to play or pause. When paused, the surrounding text shows up with the current word
   highlighted, and tapping any word jumps to it.
 - Back / forward jump by sentence. Keyboard: space, ← →, ↑ ↓ for WPM.

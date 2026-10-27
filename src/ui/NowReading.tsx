@@ -1,10 +1,11 @@
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { pause, reader, seek, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
+import { pause, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
 import type { ReaderFont } from "../store/db";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
+import { ChapterComplete, ChapterIntro } from "./ChapterCards";
 import { ContextView } from "./ContextView";
 import { BackIcon, CheckIcon, ChevronDownIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
@@ -26,6 +27,8 @@ function Sheet() {
   const book = useStore(reader, (s) => s.book)!;
   const chapter = useStore(reader, (s) => s.chapter);
   const playing = useStore(reader, (s) => s.playing);
+  const completed = useStore(reader, (s) => s.completed);
+  const atChapterStart = useStore(reader, (s) => !s.playing && s.word === 0);
   const font = useStore(library, (s) => s.settings.font);
   const [showChapters, setShowChapters] = useState(false);
   const dragControls = useDragControls();
@@ -94,33 +97,49 @@ function Sheet() {
               <button className="icon-button" onClick={close} aria-label="Close reader">
                 <ChevronDownIcon size={26} />
               </button>
-              <div className="sheet-heading">
+              <button
+                className="sheet-heading"
+                aria-label="Show chapters"
+                onClick={() => {
+                  if (dragged.current) return;
+                  pause();
+                  setShowChapters((v) => !v);
+                }}
+              >
                 <div className="sheet-chapter">{book.chapters[chapter]?.title}</div>
-                <div className="sheet-book">{book.title}</div>
-              </div>
+                <div className="sheet-book">
+                  Chapter {chapter + 1} of {book.chapters.length} · {book.title}
+                </div>
+              </button>
               <div className="icon-button-spacer" />
             </div>
           </header>
 
-          {showChapters ? (
-            <ChapterPicker onPick={() => setShowChapters(false)} />
-          ) : (
-            <>
-              <div
-                className={`stage ${playing ? "playing" : ""}`}
-                onPointerDown={startDrag}
-                onClick={() => {
-                  if (!dragged.current) toggle();
-                }}
-              >
-                <WordDisplay />
-                <div className="stage-hint">{playing ? "" : "Tap to read"}</div>
-              </div>
-              <div className={`context-wrap ${playing ? "hidden" : ""}`}>
-                <ContextView />
-              </div>
-            </>
-          )}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={showChapters ? "chapters" : completed !== null ? `done-${completed}` : atChapterStart ? `intro-${chapter}` : "reading"}
+              className="sheet-main"
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+            >
+              {showChapters ? (
+                <ChapterPicker onPick={() => setShowChapters(false)} />
+              ) : completed !== null ? (
+                <ChapterComplete index={completed} onDone={close} />
+              ) : atChapterStart ? (
+                <ChapterIntro />
+              ) : (
+                <>
+                  <Stage startDrag={startDrag} dragged={dragged} />
+                  <div className={`context-wrap ${playing ? "hidden" : ""}`}>
+                    <ContextView />
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           <Scrubber />
 
@@ -160,6 +179,85 @@ function Sheet() {
         </div>
       </motion.section>
     </>
+  );
+}
+
+/** wpm gained per pixel dragged down (or lost per pixel dragged up). */
+const RATE_PER_PX = 3;
+/** Speeds this close to zero hold still, so there's a clear stop between forwards and backwards. */
+const HOLD_ZONE = 40;
+const MAX_FORWARD = 1000;
+const MAX_REVERSE = 600;
+const MOVE_THRESHOLD = 8;
+
+/**
+ * The word, plus the speed gesture while reading: drag down to speed up, up to slow down, and keep going
+ * up to read backwards. Letting go carries on forwards. A tap without dragging pauses.
+ */
+function Stage({ startDrag, dragged }: { startDrag: (e: React.PointerEvent) => void; dragged: React.RefObject<boolean> }) {
+  const playing = useStore(reader, (s) => s.playing);
+  const rate = useStore(reader, (s) => s.rate);
+  const gesture = useRef<{ y: number; base: number; moved: boolean; rate: number } | null>(null);
+  const suppressClick = useRef(false);
+
+  const end = () => {
+    const g = gesture.current;
+    gesture.current = null;
+    if (!g?.moved) return;
+    suppressClick.current = true;
+    // Reading backwards is a detour: on release, carry on at the speed you had before.
+    if (g.rate > 0) setWpm(Math.min(MAX_FORWARD, Math.max(100, Math.round(g.rate / 10) * 10)));
+    setLiveRate(null);
+  };
+
+  return (
+    <div
+      className={`stage ${playing ? "playing" : ""}`}
+      onPointerDown={(e) => {
+        suppressClick.current = false;
+        dragged.current = false;
+        if (!reader.get().playing) return startDrag(e);
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const base = library.get().settings.wpm;
+        gesture.current = { y: e.clientY, base, moved: false, rate: base };
+      }}
+      onPointerMove={(e) => {
+        const g = gesture.current;
+        if (!g) return;
+        const dy = e.clientY - g.y;
+        if (!g.moved && Math.abs(dy) < MOVE_THRESHOLD) return;
+        g.moved = true;
+        const raw = g.base + (dy - Math.sign(dy) * MOVE_THRESHOLD) * RATE_PER_PX;
+        const clamped = Math.min(MAX_FORWARD, Math.max(-MAX_REVERSE, raw));
+        g.rate = Math.abs(clamped) < HOLD_ZONE ? 0 : Math.round(clamped);
+        setLiveRate(g.rate);
+      }}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onClick={() => {
+        if (dragged.current || suppressClick.current) return;
+        toggle();
+      }}
+    >
+      <AnimatePresence>
+        {rate !== null && (
+          <motion.div
+            className={`speed-hud ${rate < 0 ? "reverse" : ""}`}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.2 }}
+          >
+            {rate > 0 ? <ForwardIcon size={13} /> : rate < 0 ? <BackIcon size={13} /> : <PauseIcon size={11} />}
+            <span>{rate === 0 ? "Hold" : `${Math.abs(rate)} wpm${rate < 0 ? " back" : ""}`}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <WordDisplay />
+      <div className="stage-hint">
+        {playing ? (rate === null ? "" : "↓ faster · ↑ slower") : "Tap to read · drag while reading to change speed"}
+      </div>
+    </div>
   );
 }
 

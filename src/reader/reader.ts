@@ -11,15 +11,33 @@ interface ReaderState {
   playing: boolean;
   /** Whether the full-screen Now Reading sheet is showing. */
   open: boolean;
+  /**
+   * Live speed while the speed gesture is held, in signed words per minute: negative reads backwards,
+   * 0 holds still. `null` means the normal speed from settings.
+   */
+  rate: number | null;
+  /** Index of the chapter that was just finished, while its completion screen shows. */
+  completed: number | null;
 }
 
-export const reader = createStore<ReaderState>({ chapter: 0, word: 0, playing: false, open: false });
+export const reader = createStore<ReaderState>({
+  chapter: 0,
+  word: 0,
+  playing: false,
+  open: false,
+  rate: null,
+  completed: null,
+});
 
 const SAVE_EVERY_MS = 3000;
 const RAMP_WORDS = 5;
-const CHAPTER_GAP_MS = 900;
+/** Longest frame we account for, so a stalled tab doesn't fire a burst of words. */
+const MAX_FRAME_MS = 250;
 
-let timer: ReturnType<typeof setTimeout> | undefined;
+let frame: number | undefined;
+let lastFrame = 0;
+/** How far through the current word's display time we are, from 0 to 1. */
+let wordProgress = 0;
 let rampIndex = 0;
 let lastSave = 0;
 let paraEnds = new Set<number>();
@@ -32,7 +50,7 @@ export async function openBook(id: string, opts: { chapter?: number; word?: numb
     const [book, content] = await Promise.all([db.book(id), db.content(id)]);
     if (!book || !content) return;
     const saved = library.get().progress[id];
-    reader.set({ book, content, chapter: saved?.chapter ?? 0, word: saved?.word ?? 0 });
+    reader.set({ book, content, chapter: saved?.chapter ?? 0, word: saved?.word ?? 0, completed: null });
     updateSettings({ lastBookId: id });
   }
   if (opts.chapter !== undefined) seek(opts.chapter, opts.word ?? 0);
@@ -49,7 +67,7 @@ export function closeBook() {
 }
 
 export function setOpen(open: boolean) {
-  reader.set({ open });
+  reader.set(open ? { open } : { open, completed: null });
 }
 
 export function play() {
@@ -58,16 +76,18 @@ export function play() {
   // Pressing play at the very end starts the book over, like an album.
   if (chapter === content.length - 1 && word >= content[chapter].words.length - 1) seek(0, 0);
   rampIndex = 0;
-  reader.set({ playing: true });
+  wordProgress = 0;
+  reader.set({ playing: true, completed: null });
   acquireWakeLock();
-  schedule();
+  lastFrame = performance.now();
+  frame = requestAnimationFrame(tick);
 }
 
 export function pause() {
-  clearTimeout(timer);
-  timer = undefined;
+  if (frame !== undefined) cancelAnimationFrame(frame);
+  frame = undefined;
   if (!reader.get().playing) return;
-  reader.set({ playing: false });
+  reader.set({ playing: false, rate: null });
   persist();
   releaseWakeLock();
 }
@@ -83,13 +103,10 @@ export function seek(chapter: number, word: number, save = true) {
   const c = clamp(chapter, 0, content.length - 1);
   const w = clamp(word, 0, content[c].words.length - 1);
   const chapterChanged = c !== reader.get().chapter;
-  reader.set({ chapter: c, word: w });
+  reader.set({ chapter: c, word: w, completed: null });
   if (chapterChanged) indexParagraphs();
   rampIndex = 0;
-  if (reader.get().playing) {
-    clearTimeout(timer);
-    schedule();
-  }
+  wordProgress = 0;
   if (save) persist();
 }
 
@@ -123,33 +140,55 @@ export function setWpm(wpm: number) {
   updateSettings({ wpm });
 }
 
-function schedule() {
+/** Overrides the speed while the speed gesture is held; pass `null` to go back to the normal speed. */
+export function setLiveRate(rate: number | null) {
+  reader.set({ rate });
+}
+
+function tick(now: number) {
+  const dt = Math.min(now - lastFrame, MAX_FRAME_MS);
+  lastFrame = now;
+  const state = reader.get();
+  if (!state.playing || !state.content) return;
+
+  const rate = state.rate ?? library.get().settings.wpm;
+  if (rate !== 0) {
+    const forward = rate > 0;
+    const word = state.content[state.chapter].words[state.word];
+    // Pauses for punctuation and the ramp-up only make sense reading forwards.
+    const weight = forward ? wordWeight(word, paraEnds.has(state.word)) : 1;
+    const ramp = forward && rampIndex < RAMP_WORDS ? 1 + 0.8 * ((RAMP_WORDS - rampIndex) / RAMP_WORDS) : 1;
+    wordProgress += dt / (baseInterval(Math.abs(rate)) * weight * ramp);
+    if (wordProgress >= 1) {
+      wordProgress = Math.min(wordProgress - 1, 0.5);
+      step(forward);
+      if (!reader.get().playing) return;
+    }
+  }
+  frame = requestAnimationFrame(tick);
+}
+
+function step(forward: boolean) {
   const { content, chapter, word } = reader.get();
   if (!content) return;
-  const words = content[chapter].words;
-  const ramp = rampIndex < RAMP_WORDS ? 1 + 0.8 * ((RAMP_WORDS - rampIndex) / RAMP_WORDS) : 1;
-  const delay = baseInterval(library.get().settings.wpm) * wordWeight(words[word], paraEnds.has(word)) * ramp;
-  rampIndex++;
+  if (forward) {
+    if (word >= content[chapter].words.length - 1) return completeChapter();
+    reader.set({ word: word + 1 });
+    rampIndex++;
+  } else if (word > 0) {
+    // Reading backwards holds at the start of the chapter rather than crossing into the previous one.
+    reader.set({ word: word - 1 });
+  }
+  if (Date.now() - lastSave > SAVE_EVERY_MS) persist();
+}
 
-  timer = setTimeout(() => {
-    const state = reader.get();
-    if (!state.playing || !state.content) return;
-    if (state.word < words.length - 1) {
-      reader.set({ word: state.word + 1 });
-    } else if (state.chapter < state.content.length - 1) {
-      reader.set({ chapter: state.chapter + 1, word: 0 });
-      indexParagraphs();
-      persist();
-      rampIndex = 0;
-      timer = setTimeout(schedule, CHAPTER_GAP_MS);
-      return;
-    } else {
-      pause();
-      return;
-    }
-    if (Date.now() - lastSave > SAVE_EVERY_MS) persist();
-    schedule();
-  }, delay);
+/** Each chapter is its own session: stop at the end, celebrate, and wait on the next one. */
+function completeChapter() {
+  const { content, chapter } = reader.get();
+  if (!content) return;
+  pause();
+  if (chapter < content.length - 1) seek(chapter + 1, 0);
+  reader.set({ completed: chapter });
 }
 
 function indexParagraphs() {

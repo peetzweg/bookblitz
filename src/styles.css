@@ -95,17 +95,17 @@ ol {
 }
 
 .font-serif,
-.reader-font-serif :is(.rsvp, .context) {
+.reader-font-serif :is(.rsvp, .context, .card-title, .up-next-title) {
   font-family: var(--serif);
 }
 
 .font-rounded,
-.reader-font-rounded :is(.rsvp, .context) {
+.reader-font-rounded :is(.rsvp, .context, .card-title, .up-next-title) {
   font-family: var(--rounded);
 }
 
 .font-mono,
-.reader-font-mono :is(.rsvp, .context) {
+.reader-font-mono :is(.rsvp, .context, .card-title, .up-next-title) {
   font-family: var(--mono);
 }
 
@@ -1083,6 +1083,206 @@ ol {
   flex: 1;
   min-width: 0;
   text-align: center;
+  padding: 4px 0;
+  border-radius: 10px;
+}
+
+.sheet-heading:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sheet-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Chapter intro & completion ---------- */
+
+.chapter-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 12px 8px;
+  overflow-y: auto;
+}
+
+.card-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sheet-fg-2);
+}
+
+.card-title {
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  max-width: 460px;
+  text-wrap: balance;
+}
+
+.card-title.small {
+  font-size: clamp(22px, 6vw, 28px);
+}
+
+.card-meta {
+  font-size: 13px;
+  color: var(--sheet-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.start-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 200px;
+  height: 52px;
+  padding: 0 26px;
+  margin-top: 14px;
+  border-radius: 26px;
+  background: #fff;
+  color: #000;
+  font-size: 17px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px -10px rgba(0, 0, 0, 0.5);
+  transition: transform 140ms var(--ease-out), opacity 140ms;
+}
+
+.start-button:active {
+  transform: scale(0.95);
+  opacity: 0.85;
+}
+
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+  color: var(--sheet-fg);
+  font-weight: 600;
+}
+
+.ghost-button:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.complete-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--focus);
+  color: #fff;
+  box-shadow: 0 14px 34px -10px color-mix(in oklab, var(--focus) 70%, transparent);
+}
+
+/* One ring that ripples out as the badge lands. */
+.complete-badge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--focus);
+  animation: ripple 900ms 250ms var(--ease-out) both;
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+.book-tally {
+  width: min(240px, 70%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.book-tally .bar {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.book-tally .bar-fill {
+  background: #fff;
+}
+
+.up-next {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 18px;
+  padding: 18px 16px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
+.up-next-title {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.up-next .start-button {
+  margin-top: 12px;
+}
+
+.complete-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.speed-hud {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.speed-hud.reverse {
+  background: color-mix(in oklab, var(--focus) 70%, transparent);
 }
 
 .sheet-chapter,
