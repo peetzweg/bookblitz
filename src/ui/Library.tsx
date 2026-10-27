@@ -3,7 +3,7 @@ import { useState } from "react";
 import { openBook } from "../reader/reader";
 import { estimateMs, formatDuration } from "../reader/rsvp";
 import type { BookMeta, Progress } from "../store/db";
-import { bookStatus, library, percentRead, type BookStatus } from "../store/library";
+import { addSampleBook, bookStatus, library, percentRead, type BookStatus } from "../store/library";
 import { useStore } from "../store/store";
 import { Cover } from "./Cover";
 import { BookIcon, CheckCircleIcon, PlayIcon, PlusIcon } from "./icons";
@@ -47,9 +47,12 @@ export function Library({ onAdd }: { onAdd: () => void }) {
         <section className="empty">
           <BookIcon size={56} className="empty-icon" />
           <h2>Add your first book</h2>
-          <p>Open an EPUB to start reading. Your books and progress stay on this device.</p>
+          <p>Pick EPUBs from Files or iCloud Drive. They’re copied into the app, so your books and progress stay on this device.</p>
           <button className="pill-button filled" onClick={onAdd}>
             Add EPUB
+          </button>
+          <button className="text-button tint" onClick={addSampleBook}>
+            Try Alice in Wonderland
           </button>
         </section>
       )}

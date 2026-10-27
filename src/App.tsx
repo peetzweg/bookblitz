@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { openBook, reader } from "./reader/reader";
-import { importFiles, library, loadLibrary } from "./store/library";
+import { addSampleBook, importFiles, library, loadLibrary } from "./store/library";
 import { useStore } from "./store/store";
 import { BookPage } from "./ui/BookPage";
 import { Library } from "./ui/Library";
@@ -18,13 +18,15 @@ export function App() {
   const [origin, setOrigin] = useState("50% 50%");
   useEffect(() => {
     if (sheetOpen) setOrigin(`50% ${window.scrollY + window.innerHeight / 2}px`);
+    document.documentElement.classList.toggle("sheet-open", sheetOpen);
   }, [sheetOpen]);
 
   useEffect(() => {
     loadLibrary().then(() => {
+      const { settings, books } = library.get();
+      if (!settings.sampleAdded && books.length === 0) addSampleBook();
       // Bring back the last book in the mini player, like Apple Music does after a restart.
-      const { lastBookId } = library.get().settings;
-      if (lastBookId) openBook(lastBookId, { open: false });
+      if (settings.lastBookId) openBook(settings.lastBookId, { open: false });
     });
   }, []);
 

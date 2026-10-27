@@ -38,6 +38,8 @@ export interface Settings {
   wpm: number;
   font: ReaderFont;
   lastBookId?: string;
+  /** Set once the sample book has been offered, so deleting it doesn't bring it back. */
+  sampleAdded?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

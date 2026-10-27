@@ -30,20 +30,23 @@ function sortBooks(books: BookMeta[], progress: Record<string, Progress>) {
 }
 
 export async function importFiles(files: FileList | File[]) {
-  const list = Array.from(files).filter((f) => /\.epub$/i.test(f.name) || f.type === "application/epub+zip");
-  if (!list.length) return showToast("That's not an EPUB file");
+  const list = Array.from(files);
+  if (!list.length) return;
   navigator.storage?.persist?.().catch(() => {});
 
   let added = 0;
+  let duplicates = 0;
+  const failures: string[] = [];
   for (const file of list) {
     library.set((s) => ({ importing: s.importing + 1 }));
     try {
       const data = await file.arrayBuffer();
       const id = await hash(data);
       const existing = await db.book(id);
-      if (!existing) {
+      if (existing) duplicates++;
+      else {
         const parsed = parseEpub(data, file.name.replace(/\.epub$/i, ""));
-        if (!parsed.chapters.length) throw new Error("No readable text found");
+        if (!parsed.chapters.length) throw new Error("no readable text was found in it");
         const meta: BookMeta = {
           id,
           title: parsed.title,
@@ -60,13 +63,31 @@ export async function importFiles(files: FileList | File[]) {
       }
     } catch (err) {
       console.error(err);
-      showToast(`Couldn't open “${file.name}”`);
+      const reason = err instanceof Error ? err.message : String(err);
+      failures.push(`Couldn't add “${file.name}”: ${reason}`);
     } finally {
       library.set((s) => ({ importing: s.importing - 1 }));
     }
   }
   await loadLibrary();
-  if (added) showToast(added === 1 ? "Added to Library" : `Added ${added} books`);
+  // A failure is the message worth reading, so it wins over "Added".
+  if (failures.length) showToast(failures.length === 1 ? failures[0] : `${failures.length} books couldn't be added. ${failures[0]}`, 6000);
+  else if (added) showToast(added === 1 ? "Added to Library" : `Added ${added} books`);
+  else if (duplicates) showToast(duplicates === 1 ? "Already in your Library" : "Those are already in your Library");
+}
+
+/** Public-domain book bundled with the app, so a new library has something to read. */
+export async function addSampleBook() {
+  updateSettings({ sampleAdded: true });
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}samples/alice-in-wonderland.epub`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    await importFiles([new File([blob], "alice-in-wonderland.epub", { type: "application/epub+zip" })]);
+  } catch (err) {
+    console.error(err);
+    showToast("Couldn't load the sample book");
+  }
 }
 
 export async function removeBook(id: string) {
@@ -124,10 +145,10 @@ export function updateSettings(patch: Partial<Settings>) {
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
-export function showToast(message: string) {
+export function showToast(message: string, durationMs = 2400) {
   library.set({ toast: message });
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => library.set({ toast: undefined }), 2400);
+  toastTimer = setTimeout(() => library.set({ toast: undefined }), durationMs);
 }
 
 /** Content hash, so re-importing the same file keeps its progress. */

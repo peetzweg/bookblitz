@@ -27,6 +27,8 @@ interface TocEntry {
   title: string;
 }
 
+const TEXT_FILE = /(^META-INF\/|\.(opf|ncx|xml|xhtml|html?|xht)$)/i;
+
 /** Chapters shorter than this get folded into the next one (title pages, "Part One", ...). */
 const MIN_CHAPTER_WORDS = 15;
 
@@ -38,17 +40,25 @@ const BLOCK = new Set([
 const SKIP = new Set(["script", "style", "head", "sup", "rt", "rp", "svg", "math", "noscript"]);
 
 export function parseEpub(data: ArrayBuffer, fallbackTitle: string): ParsedBook {
-  const files = unzipSync(new Uint8Array(data));
+  const zip = new Uint8Array(data);
+  let files: Record<string, Uint8Array>;
+  try {
+    // Only unpack the text: images can be most of a book, and unpacking them all can run a phone out of memory.
+    files = unzipSync(zip, { filter: (f) => TEXT_FILE.test(f.name) });
+  } catch {
+    throw new Error("it isn't an EPUB file");
+  }
   const read = (path: string): string | undefined => {
     const bytes = files[path] ?? files[decodeURIComponent(path)];
     return bytes ? strFromU8(bytes) : undefined;
   };
 
   const container = read("META-INF/container.xml");
-  if (!container) throw new Error("Not an EPUB: META-INF/container.xml is missing");
+  if (!container) throw new Error("it isn't an EPUB file");
+  if (isDrmProtected(files, read)) throw new Error("it's DRM-protected, so only the store's own app can open it");
   const opfPath = xml(container).getElementsByTagNameNS("*", "rootfile")[0]?.getAttribute("full-path");
   const opfText = opfPath && read(opfPath);
-  if (!opfPath || !opfText) throw new Error("Not an EPUB: package document is missing");
+  if (!opfPath || !opfText) throw new Error("the EPUB is missing its package file");
 
   const opf = xml(opfText);
   const opfDir = dirname(opfPath);
@@ -77,7 +87,7 @@ export function parseEpub(data: ArrayBuffer, fallbackTitle: string): ParsedBook 
     .filter((item): item is ManifestItem => !!item);
 
   const toc = readToc(manifest, spineEl?.getAttribute("toc"), read);
-  const cover = readCover(opf, manifest, files);
+  const cover = readCover(opf, manifest, zip);
 
   // Group TOC entries per file so each document knows where its chapters start.
   const tocByFile = new Map<string, TocEntry[]>();
@@ -176,6 +186,17 @@ class ChapterBuilder {
   }
 }
 
+/** Apple FairPlay ships a sinf.xml; Adobe and others encrypt content listed in encryption.xml. */
+function isDrmProtected(files: Record<string, Uint8Array>, read: (path: string) => string | undefined): boolean {
+  if (files["META-INF/sinf.xml"] || files["META-INF/rights.xml"]) return true;
+  const encryption = read("META-INF/encryption.xml");
+  if (!encryption) return false;
+  // Font obfuscation also lives in encryption.xml and is harmless: only text encryption blocks reading.
+  const algorithms = [...encryption.matchAll(/Algorithm="([^"]+)"/g)].map((m) => m[1]);
+  const fontObfuscation = ["http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC"];
+  return algorithms.some((a) => !fontObfuscation.includes(a));
+}
+
 function concat(a: ParsedChapter, b: ParsedChapter, title = b.title): ParsedChapter {
   return {
     title,
@@ -234,7 +255,7 @@ function cleanTitle(title: string): string {
   return match ? match[1] : title;
 }
 
-function readCover(opf: Document, manifest: Map<string, ManifestItem>, files: Record<string, Uint8Array>): Blob | undefined {
+function readCover(opf: Document, manifest: Map<string, ManifestItem>, zip: Uint8Array): Blob | undefined {
   const items = [...manifest.values()];
   const metaCoverId = Array.from(opf.getElementsByTagNameNS("*", "meta"))
     .find((m) => m.getAttribute("name") === "cover")
@@ -244,7 +265,8 @@ function readCover(opf: Document, manifest: Map<string, ManifestItem>, files: Re
     (metaCoverId ? manifest.get(metaCoverId) : undefined) ??
     items.find((i) => i.mediaType.startsWith("image/") && /cover/i.test(i.id + i.href));
   if (!item || !item.mediaType.startsWith("image/")) return;
-  const bytes = files[item.href] ?? files[decodeURIComponent(item.href)];
+  const names = new Set([item.href, decodeURIComponent(item.href)]);
+  const bytes = Object.values(unzipSync(zip, { filter: (f) => names.has(f.name) }))[0];
   return bytes ? new Blob([bytes as Uint8Array<ArrayBuffer>], { type: item.mediaType }) : undefined;
 }
 
