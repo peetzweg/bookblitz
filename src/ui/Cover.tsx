@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import type { BookMeta } from "../store/db";
 
-const urls = new WeakMap<Blob, string>();
+const urls = new Map<string, string>();
 
-function coverUrl(blob: Blob) {
-  let url = urls.get(blob);
+function coverUrl(book: BookMeta): string | undefined {
+  let url = urls.get(book.id);
   if (!url) {
+    const blob = book.coverData ? new Blob([book.coverData], { type: book.coverType }) : book.cover;
+    if (!blob) return;
     url = URL.createObjectURL(blob);
-    urls.set(blob, url);
+    urls.set(book.id, url);
   }
   return url;
 }
@@ -17,10 +19,11 @@ export function Cover({ book, className = "" }: { book: BookMeta; className?: st
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
-  }, [book.cover]);
+  }, [book.id]);
 
-  if (book.cover && !failed) {
-    return <img className={`cover ${className}`} src={coverUrl(book.cover)} alt="" draggable={false} onError={() => setFailed(true)} />;
+  const src = coverUrl(book);
+  if (src && !failed) {
+    return <img className={`cover ${className}`} src={src} alt="" draggable={false} onError={() => setFailed(true)} />;
   }
   const hue = [...book.title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
   return (

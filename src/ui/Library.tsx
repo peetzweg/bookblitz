@@ -3,7 +3,7 @@ import { useState } from "react";
 import { openBook } from "../reader/reader";
 import { estimateMs, formatDuration } from "../reader/rsvp";
 import type { BookMeta, Progress } from "../store/db";
-import { addSampleBook, bookStatus, library, percentRead, type BookStatus } from "../store/library";
+import { addSampleBook, bookStatus, library, percentRead, resetLibrary, retryLibrary, type BookStatus } from "../store/library";
 import { useStore } from "../store/store";
 import { Cover } from "./Cover";
 import { BookIcon, CheckCircleIcon, PlayIcon, PlusIcon } from "./icons";
@@ -25,6 +25,7 @@ export function Library({ onAdd }: { onAdd: () => void }) {
   const books = useStore(library, (s) => s.books);
   const progress = useStore(library, (s) => s.progress);
   const ready = useStore(library, (s) => s.ready);
+  const stuck = useStore(library, (s) => s.stuck);
   const importing = useStore(library, (s) => s.importing);
   const wpm = useStore(library, (s) => s.settings.wpm);
   const [filter, setFilter] = useState<Filter>("all");
@@ -42,6 +43,24 @@ export function Library({ onAdd }: { onAdd: () => void }) {
           <PlusIcon size={22} />
         </button>
       </header>
+
+      {stuck && !ready && (
+        <section className="empty">
+          <h2>Your library isn’t loading</h2>
+          <p>Safari’s storage for this site seems to be stuck. Trying again keeps your books. If that doesn’t help, clear it and add your EPUBs again.</p>
+          <button className="pill-button filled" onClick={retryLibrary}>
+            Try Again
+          </button>
+          <button
+            className="text-button destructive"
+            onClick={() => {
+              if (confirm("Clear all books and reading progress saved on this device?")) resetLibrary();
+            }}
+          >
+            Clear and Start Over
+          </button>
+        </section>
+      )}
 
       {ready && books.length === 0 && !importing && (
         <section className="empty">

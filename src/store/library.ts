@@ -1,9 +1,11 @@
 import { parseEpub } from "../epub/parse";
-import { db, DEFAULT_SETTINGS, type BookMeta, type Progress, type Settings } from "./db";
+import { closeDatabase, db, DEFAULT_SETTINGS, resetDatabase, type BookMeta, type Progress, type Settings } from "./db";
 import { createStore } from "./store";
 
 interface LibraryState {
   ready: boolean;
+  /** Loading has taken far too long: Safari's storage for this site is likely stuck. */
+  stuck: boolean;
   books: BookMeta[];
   progress: Record<string, Progress>;
   settings: Settings;
@@ -13,15 +15,35 @@ interface LibraryState {
 
 export const library = createStore<LibraryState>({
   ready: false,
+  stuck: false,
   books: [],
   progress: {},
   settings: DEFAULT_SETTINGS,
   importing: 0,
 });
 
+const STUCK_AFTER_MS = 6000;
+
 export async function loadLibrary() {
-  const [books, progress, settings] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
-  library.set({ ready: true, books: sortBooks(books, progress), progress, settings });
+  const stuckTimer = setTimeout(() => library.set({ stuck: true }), STUCK_AFTER_MS);
+  try {
+    const [books, progress, settings] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
+    library.set({ ready: true, stuck: false, books: sortBooks(books, progress), progress, settings });
+  } finally {
+    clearTimeout(stuckTimer);
+  }
+}
+
+/** Reconnects to storage from scratch, keeping all data. Enough to un-stick Safari in testing. */
+export async function retryLibrary() {
+  await closeDatabase();
+  location.reload();
+}
+
+/** Clears all local data and starts over. */
+export async function resetLibrary() {
+  await resetDatabase();
+  location.reload();
 }
 
 function sortBooks(books: BookMeta[], progress: Record<string, Progress>) {
@@ -51,7 +73,8 @@ export async function importFiles(files: FileList | File[]) {
           id,
           title: parsed.title,
           author: parsed.author,
-          cover: parsed.cover,
+          coverData: parsed.cover && (await parsed.cover.arrayBuffer()),
+          coverType: parsed.cover?.type,
           tint: parsed.cover ? await dominantColor(parsed.cover).catch(() => undefined) : undefined,
           chapters: parsed.chapters.map((c) => ({ title: c.title, words: c.words.length })),
           totalWords: parsed.chapters.reduce((n, c) => n + c.words.length, 0),
@@ -127,21 +150,31 @@ export async function setFinished(book: BookMeta, finished: boolean) {
 
 export function saveProgress(id: string, progress: Progress) {
   library.set((s) => ({ progress: { ...s.progress, [id]: progress } }));
-  db.putProgress(id, progress);
+  db.putProgress(id, progress).catch((err) => console.error("Couldn't save reading progress", err));
 }
 
 export async function markOpened(id: string) {
-  const book = await db.book(id);
-  if (!book) return;
-  book.openedAt = Date.now();
-  await db.putBook(book);
-  library.set((s) => ({ books: sortBooks(s.books.map((b) => (b.id === id ? book : b)), s.progress) }));
+  try {
+    const book = await db.book(id);
+    if (!book) return;
+    book.openedAt = Date.now();
+    // Safari can't reliably re-store a Blob it read back, so books saved with one move to plain bytes.
+    if (book.cover) {
+      book.coverData = await book.cover.arrayBuffer();
+      book.coverType = book.cover.type;
+      delete book.cover;
+    }
+    await db.putBook(book);
+    library.set((s) => ({ books: sortBooks(s.books.map((b) => (b.id === id ? book : b)), s.progress) }));
+  } catch (err) {
+    console.error("Couldn't update the book's last-opened time", err);
+  }
 }
 
 export function updateSettings(patch: Partial<Settings>) {
   const settings = { ...library.get().settings, ...patch };
   library.set({ settings });
-  db.putSettings(settings);
+  db.putSettings(settings).catch((err) => console.error("Couldn't save settings", err));
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;

@@ -11,8 +11,15 @@ import { BackIcon, CheckIcon, ChevronDownIcon, ForwardIcon, ListIcon, PauseIcon,
 import { Slider } from "./Slider";
 import { WordDisplay } from "./WordDisplay";
 
-const FONTS: ReaderFont[] = ["sans", "serif", "rounded", "mono"];
-const FONT_NAMES: Record<ReaderFont, string> = { sans: "SF Pro", serif: "New York", rounded: "SF Pro Rounded", mono: "SF Mono" };
+const FONTS: ReaderFont[] = ["sans", "serif", "iowan", "charter", "athelas", "rounded"];
+const FONT_NAMES: Record<ReaderFont, string> = {
+  sans: "SF Pro",
+  serif: "New York",
+  iowan: "Iowan",
+  charter: "Charter",
+  athelas: "Athelas",
+  rounded: "SF Rounded",
+};
 
 const SHEET_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
 const DISMISS_DISTANCE = 140;
@@ -159,11 +166,12 @@ function Sheet() {
 
           <div className="sheet-footer">
             <button
-              className="icon-button footer-button font-button"
+              className="footer-button font-button"
               onClick={() => updateSettings({ font: FONTS[(FONTS.indexOf(font) + 1) % FONTS.length] })}
               aria-label={`Reading font: ${FONT_NAMES[font]}. Tap to change.`}
             >
               <span className={`font-${font}`}>Aa</span>
+              <span className="font-name">{FONT_NAMES[font] ?? FONT_NAMES.sans}</span>
             </button>
             <button
               className={`icon-button footer-button ${showChapters ? "on" : ""}`}

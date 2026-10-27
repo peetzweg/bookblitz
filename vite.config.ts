@@ -12,7 +12,7 @@ export default defineConfig({
         name: "bookblitz",
         short_name: "bookblitz",
         description: "Speed-read your EPUBs, one word at a time.",
-        theme_color: "#fa2d48",
+        theme_color: "#278459",
         background_color: "#000000",
         display: "standalone",
         orientation: "portrait",

@@ -9,6 +9,13 @@ export interface BookMeta {
   id: string;
   title: string;
   author: string;
+  /**
+   * Cover image bytes. Stored as plain bytes rather than a Blob: Safari's IndexedDB can fail to store
+   * Blobs ("Error preparing Blob/File data"), which aborted the whole import.
+   */
+  coverData?: ArrayBuffer;
+  coverType?: string;
+  /** Covers from before `coverData`; read-only, never written any more. */
   cover?: Blob;
   /** Dominant cover colour as "r g b", used to tint the reader. */
   tint?: string;
@@ -31,8 +38,8 @@ export interface Progress {
   finished?: boolean;
 }
 
-/** Apple's system faces: SF Pro, New York, SF Pro Rounded, SF Mono. */
-export type ReaderFont = "sans" | "serif" | "rounded" | "mono";
+/** Apple's system faces (SF Pro, New York, SF Pro Rounded) and Apple Books' reading faces. */
+export type ReaderFont = "sans" | "serif" | "iowan" | "charter" | "athelas" | "rounded";
 
 export interface Settings {
   wpm: number;
@@ -58,7 +65,30 @@ const dbPromise = openDB<Schema>("bookblitz", 1, {
     db.createObjectStore("progress");
     db.createObjectStore("settings");
   },
+  // Let go when another page (an old tab, a page Safari kept in its back-forward cache) needs the
+  // database, so neither side ends up waiting on the other forever.
+  blocking(_current, _blocked, event) {
+    (event.target as IDBDatabase).close();
+  },
 });
+
+/** Closes this page's connection, which releases a stuck transaction without losing any data. */
+export async function closeDatabase() {
+  const open = await Promise.race([dbPromise, new Promise<undefined>((r) => setTimeout(r, 1000))]).catch(() => undefined);
+  open?.close();
+}
+
+/**
+ * Deletes the whole local database. The last resort when Safari's storage for this site gets stuck and
+ * reads never return.
+ */
+export async function resetDatabase() {
+  await closeDatabase();
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase("bookblitz");
+    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+  });
+}
 
 export const db = {
   async books() {
