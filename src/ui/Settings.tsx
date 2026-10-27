@@ -24,8 +24,9 @@ export function Settings() {
   const style = STYLES[settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
   const font = settings.font;
 
+  // The reader font class goes on the page, so every preview here reads in your font.
   return (
-    <main className="page settings-page">
+    <main className={`page settings-page reader-font-${font}`}>
       <header className="nav-bar scrolled">
         <button className="nav-back tint" onClick={goBack}>
           <ChevronLeftIcon size={22} />
@@ -36,6 +37,23 @@ export function Settings() {
         </div>
         <div className="nav-spacer" />
       </header>
+
+      <h2 className="settings-heading">Speed</h2>
+      <section className="settings-group padded">
+        <div className="settings-speed">
+          <span className="speed-end">100</span>
+          <Slider label="Words per minute" value={settings.wpm} min={100} max={1000} step={10} onChange={setWpm} />
+          <span className="speed-end">1000</span>
+        </div>
+        <div className="settings-row-split">
+          <span>{settings.wpm} words per minute</span>
+          {settings.wpm !== style.defaultWpm && (
+            <button className="link-button" onClick={() => setWpm(style.defaultWpm)}>
+              Use {style.name}'s {style.defaultWpm}
+            </button>
+          )}
+        </div>
+      </section>
 
       <h2 className="settings-heading">Reading style</h2>
       <section className="settings-group padded">
@@ -62,23 +80,6 @@ export function Settings() {
         How one word hands over to the next. Give each a minute at your speed; the one you pick is used in the reader too, so
         try it on a real chapter. Cut is the classic.
       </p>
-
-      <h2 className="settings-heading">Speed</h2>
-      <section className="settings-group padded">
-        <div className="settings-speed">
-          <span className="speed-end">100</span>
-          <Slider label="Words per minute" value={settings.wpm} min={100} max={1000} step={10} onChange={setWpm} />
-          <span className="speed-end">1000</span>
-        </div>
-        <div className="settings-row-split">
-          <span>{settings.wpm} words per minute</span>
-          {settings.wpm !== style.defaultWpm && (
-            <button className="link-button" onClick={() => setWpm(style.defaultWpm)}>
-              Use {style.name}'s {style.defaultWpm}
-            </button>
-          )}
-        </div>
-      </section>
 
       <h2 className="settings-heading">Font</h2>
       <section className="settings-group">

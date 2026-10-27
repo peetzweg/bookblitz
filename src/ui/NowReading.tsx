@@ -81,10 +81,11 @@ function Sheet() {
       // Drop focus so a focused button doesn't also activate on keyup.
       if (e.key === " ") (document.activeElement as HTMLElement | null)?.blur();
       if (e.key === " ") toggle();
-      else if (e.key === "ArrowLeft") stepSentence(-1);
-      else if (e.key === "ArrowRight") stepSentence(1);
-      else if (e.key === "ArrowUp") setWpm(Math.min(1000, wpm + 25));
-      else if (e.key === "ArrowDown") setWpm(Math.max(100, wpm - 25));
+      // Up/right is faster, down/left slower; with Shift, left/right jump a sentence.
+      else if (e.shiftKey && e.key === "ArrowLeft") stepSentence(-1);
+      else if (e.shiftKey && e.key === "ArrowRight") stepSentence(1);
+      else if (e.key === "ArrowUp" || e.key === "ArrowRight") setWpm(Math.min(1000, wpm + 25));
+      else if (e.key === "ArrowDown" || e.key === "ArrowLeft") setWpm(Math.max(100, wpm - 25));
       else if (e.key === "Escape") close();
       else return;
       e.preventDefault();
