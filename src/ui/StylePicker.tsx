@@ -1,0 +1,97 @@
+import { useEffect, useMemo, useState } from "react";
+import { baseInterval } from "../reader/rsvp";
+import { buildFrames, DEFAULT_STYLE, frameWeight, paragraphEnds, rampFactor, STYLES, type StyleId } from "../reader/timing";
+import { tokenize } from "../epub/parse";
+import { library, updateSettings } from "../store/library";
+import { useStore } from "../store/store";
+import { CheckIcon } from "./icons";
+import { WordView } from "./WordDisplay";
+
+/** Public domain (Carroll, 1865); has a long word, a clause, a question and a quote to feel the timing on. */
+const SAMPLE = tokenize(
+  "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, “and what is the use of a book,” thought Alice “without pictures or conversations?”",
+);
+const SAMPLE_ENDS = paragraphEnds([0], SAMPLE.length);
+/** Breather before the sample starts over. */
+const LOOP_PAUSE_MS = 1200;
+
+const ORDER: StyleId[] = ["flow", "phrases", "calm"];
+
+/**
+ * The reading-style taste test: each style plays the same passage at your speed, so you can feel the
+ * difference instead of reading about it. Shown before the first read, and from the reader's footer.
+ */
+export function StylePicker({ onDone }: { onDone: (style: StyleId) => void }) {
+  const current = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
+  const [selected, setSelected] = useState<StyleId>(current);
+
+  return (
+    <div className="style-picker">
+      <div className="style-preview">
+        <StylePreview style={selected} />
+      </div>
+      <div className="style-intro">
+        <h2 className="card-title small">How do you like to read?</h2>
+        <p className="card-meta">Each style reads the same lines at your speed. Pick the one that feels easiest; you can change it any time.</p>
+      </div>
+      <div className="style-options" role="radiogroup" aria-label="Reading style">
+        {ORDER.map((id) => {
+          const style = STYLES[id];
+          return (
+            <button
+              key={id}
+              role="radio"
+              aria-checked={selected === id}
+              className={`style-option pressable ${selected === id ? "selected" : ""}`}
+              onClick={() => setSelected(id)}
+            >
+              <span className="style-option-text">
+                <span className="style-option-name">
+                  {style.name}
+                  {id === DEFAULT_STYLE && <span className="style-badge">Recommended</span>}
+                </span>
+                <span className="style-option-tagline">{style.tagline}</span>
+              </span>
+              <span className="style-check">{selected === id && <CheckIcon size={16} />}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button
+        className="start-button"
+        onClick={() => {
+          updateSettings({ style: selected, styleChosen: true });
+          onDone(selected);
+        }}
+      >
+        Read with {STYLES[selected].name}
+      </button>
+    </div>
+  );
+}
+
+/** Plays the sample on a loop with the real timing functions, so a preview feels exactly like reading. */
+function StylePreview({ style: id }: { style: StyleId }) {
+  const wpm = useStore(library, (s) => s.settings.wpm);
+  const style = STYLES[id];
+  const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [id]);
+
+  useEffect(() => {
+    const start = starts[index];
+    const end = starts[index + 1] ?? SAMPLE.length;
+    const last = index >= starts.length - 1;
+    const delay =
+      baseInterval(wpm) * frameWeight(SAMPLE, start, end, SAMPLE_ENDS, style) * rampFactor(index, style) + (last ? LOOP_PAUSE_MS : 0);
+    const timer = setTimeout(() => setIndex(last ? 0 : index + 1), delay);
+    return () => clearTimeout(timer);
+  }, [index, starts, style, wpm]);
+
+  const start = starts[Math.min(index, starts.length - 1)];
+  const end = starts[index + 1] ?? SAMPLE.length;
+  return <WordView text={SAMPLE.slice(start, end).join(" ")} />;
+}

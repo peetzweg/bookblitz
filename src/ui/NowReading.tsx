@@ -9,8 +9,10 @@ import { ChapterComplete, ChapterIntro } from "./ChapterCards";
 import { Cover } from "./Cover";
 import { land, takeOff } from "./coverFlight";
 import { ContextView } from "./ContextView";
-import { BackIcon, CheckIcon, ChevronDownIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
+import { BackIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
+import { StylePicker } from "./StylePicker";
+import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { WordDisplay } from "./WordDisplay";
 
 const FONTS: ReaderFont[] = ["sans", "serif", "iowan", "charter", "athelas", "rounded"];
@@ -40,6 +42,9 @@ function Sheet() {
   const atChapterStart = useStore(reader, (s) => !s.playing && s.word === 0);
   const font = useStore(library, (s) => s.settings.font);
   const [showChapters, setShowChapters] = useState(false);
+  const [showStyles, setShowStyles] = useState(false);
+  const askStyle = useStore(reader, (s) => s.askStyle);
+  const style = useStore(library, (s) => STYLES[s.settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE]);
   const dragControls = useDragControls();
   const dragged = useRef(false);
   const sheetRef = useRef<HTMLElement>(null);
@@ -115,7 +120,7 @@ function Sheet() {
         }}
         aria-label="Now Reading"
       >
-        <div className={`sheet-inner reader-font-${font}`}>
+        <div className={`sheet-inner reader-font-${font} ${askStyle || showStyles ? "choosing-style" : ""}`}>
           <header className="sheet-header" onPointerDown={startDrag}>
             <div className="grabber" />
             <div className="sheet-header-row">
@@ -142,14 +147,32 @@ function Sheet() {
 
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={showChapters ? "chapters" : completed !== null ? `done-${completed}` : atChapterStart ? `intro-${chapter}` : "reading"}
+              key={
+                askStyle || showStyles
+                  ? "styles"
+                  : showChapters
+                    ? "chapters"
+                    : completed !== null
+                      ? `done-${completed}`
+                      : atChapterStart
+                        ? `intro-${chapter}`
+                        : "reading"
+              }
               className="sheet-main"
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ type: "spring", bounce: 0, duration: 0.3 }}
             >
-              {showChapters ? (
+              {askStyle || showStyles ? (
+                <StylePicker
+                  onDone={() => {
+                    setShowStyles(false);
+                    // Picked on the way into the first read: carry on into it.
+                    if (reader.get().askStyle) play();
+                  }}
+                />
+              ) : showChapters ? (
                 <ChapterPicker onPick={() => setShowChapters(false)} />
               ) : completed !== null ? (
                 <ChapterComplete index={completed} onDone={close} />
@@ -191,9 +214,22 @@ function Sheet() {
               <span className="font-name">{FONT_NAMES[font] ?? FONT_NAMES.sans}</span>
             </button>
             <button
+              className={`footer-button font-button ${showStyles ? "on" : ""}`}
+              onClick={() => {
+                pause();
+                setShowChapters(false);
+                setShowStyles((v) => !v);
+              }}
+              aria-label={`Reading style: ${style.name}. Tap to change.`}
+            >
+              <RhythmIcon size={20} />
+              <span className="font-name">{style.name}</span>
+            </button>
+            <button
               className={`icon-button footer-button ${showChapters ? "on" : ""}`}
               onClick={() => {
                 pause();
+                setShowStyles(false);
                 setShowChapters((v) => !v);
               }}
               aria-label="Chapters"

@@ -1,4 +1,5 @@
 import { openDB, type DBSchema } from "idb";
+import type { StyleId } from "../reader/timing";
 
 export interface ChapterMeta {
   title: string;
@@ -49,6 +50,10 @@ export interface Settings {
   sampleAdded?: boolean;
   /** The "add to Home Screen" card was closed. */
   installHintDismissed?: boolean;
+  /** Reading style (see reader/timing.ts). Unset means the default. */
+  style?: StyleId;
+  /** The reading-style taste test has been seen, so it isn't offered again on its own. */
+  styleChosen?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

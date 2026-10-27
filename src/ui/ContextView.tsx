@@ -11,9 +11,10 @@ export function ContextView() {
   const chapter = useStore(reader, (s) => s.chapter);
   // Hidden behind the reading overlay while playing, so don't re-render hundreds of words per word.
   const live = useStore(reader, (s) => (s.playing ? null : s.word));
-  const lastWord = useRef(0);
-  if (live !== null) lastWord.current = live;
-  const word = lastWord.current;
+  const liveEnd = useStore(reader, (s) => (s.playing ? null : s.frameEnd));
+  const frozen = useRef({ word: 0, end: 1 });
+  if (live !== null && liveEnd !== null) frozen.current = { word: live, end: liveEnd };
+  const { word, end: frameEnd } = frozen.current;
   const scroller = useRef<HTMLDivElement>(null);
 
   const chapterContent = content?.[chapter];
@@ -35,6 +36,7 @@ export function ContextView() {
   useLayoutEffect(() => {
     const box = scroller.current;
     const el = box?.querySelector<HTMLElement>(".ctx-current");
+    // offsetTop of the first highlighted word is enough: a phrase sits on one or two lines.
     if (!box || !el) return;
     const margin = box.clientHeight * 0.22;
     const top = el.offsetTop - box.scrollTop;
@@ -57,7 +59,7 @@ export function ContextView() {
       spans.push(
         <span
           key={i}
-          className={i === word ? "ctx-word ctx-current" : i < word ? "ctx-word ctx-read" : "ctx-word"}
+          className={i >= word && i < frameEnd ? "ctx-word ctx-current" : i < word ? "ctx-word ctx-read" : "ctx-word"}
           onClick={(e) => {
             e.stopPropagation();
             seek(chapter, i);

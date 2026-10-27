@@ -1,13 +1,17 @@
 import { db, type BookMeta, type ChapterContent } from "../store/db";
 import { library, markOpened, saveProgress, updateSettings } from "../store/library";
 import { createStore } from "../store/store";
-import { baseInterval, endsSentence, wordWeight } from "./rsvp";
+import { baseInterval, endsSentence } from "./rsvp";
+import { buildFrames, DEFAULT_STYLE, frameIndexOf, frameWeight, paragraphEnds, rampFactor, STYLES, type ReadingStyle } from "./timing";
 
 interface ReaderState {
   book?: BookMeta;
   content?: ChapterContent[];
   chapter: number;
+  /** First word of the frame on screen. Progress, bookmarks and the context view all work in words. */
   word: number;
+  /** One past the last word of the frame on screen: `word + 1` for one-word styles. */
+  frameEnd: number;
   playing: boolean;
   /** Whether the full-screen Now Reading sheet is showing. */
   open: boolean;
@@ -18,29 +22,40 @@ interface ReaderState {
   rate: number | null;
   /** Index of the chapter that was just finished, while its completion screen shows. */
   completed: number | null;
+  /** Play was pressed before any reading style was picked: show the taste test first. */
+  askStyle: boolean;
 }
 
 export const reader = createStore<ReaderState>({
   chapter: 0,
   word: 0,
+  frameEnd: 1,
   playing: false,
   open: false,
   rate: null,
   completed: null,
+  askStyle: false,
 });
 
 const SAVE_EVERY_MS = 3000;
-const RAMP_WORDS = 5;
 /** Longest frame we account for, so a stalled tab doesn't fire a burst of words. */
 const MAX_FRAME_MS = 250;
 
 let frame: number | undefined;
 let lastFrame = 0;
-/** How far through the current word's display time we are, from 0 to 1. */
-let wordProgress = 0;
-let rampIndex = 0;
+/** How far through the current frame's display time we are, from 0 to 1. */
+let frameProgress = 0;
+/** Frames shown since play was pressed, for the ramp-up. */
+let framesInRun = 0;
 let lastSave = 0;
 let paraEnds = new Set<number>();
+/** Start word of every frame in the current chapter, for the current style. */
+let frameStarts: number[] = [0];
+let styleId = library.get().settings.style;
+
+export function currentStyle(): ReadingStyle {
+  return STYLES[library.get().settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
+}
 let wakeLock: WakeLockSentinel | undefined;
 
 export async function openBook(id: string, opts: { chapter?: number; word?: number; open?: boolean } = {}) {
@@ -51,6 +66,7 @@ export async function openBook(id: string, opts: { chapter?: number; word?: numb
     if (!book || !content) return;
     const saved = library.get().progress[id];
     reader.set({ book, content, chapter: saved?.chapter ?? 0, word: saved?.word ?? 0, completed: null });
+    indexChapter();
     updateSettings({ lastBookId: id });
   }
   if (opts.chapter !== undefined) seek(opts.chapter, opts.word ?? 0);
@@ -58,7 +74,6 @@ export async function openBook(id: string, opts: { chapter?: number; word?: numb
     reader.set({ open: true });
     markOpened(id);
   }
-  indexParagraphs();
 }
 
 export function closeBook() {
@@ -73,11 +88,13 @@ export function setOpen(open: boolean) {
 export function play() {
   const { content, chapter, word, playing } = reader.get();
   if (!content || playing) return;
+  // The first read starts with picking a style, so people feel the options before settling on one.
+  if (!library.get().settings.styleChosen) return reader.set({ askStyle: true, open: true });
   // Pressing play at the very end starts the book over, like an album.
   if (chapter === content.length - 1 && word >= content[chapter].words.length - 1) seek(0, 0);
-  rampIndex = 0;
-  wordProgress = 0;
-  reader.set({ playing: true, completed: null });
+  framesInRun = 0;
+  frameProgress = 0;
+  reader.set({ playing: true, completed: null, askStyle: false });
   acquireWakeLock();
   lastFrame = performance.now();
   frame = requestAnimationFrame(tick);
@@ -103,10 +120,11 @@ export function seek(chapter: number, word: number, save = true) {
   const c = clamp(chapter, 0, content.length - 1);
   const w = clamp(word, 0, content[c].words.length - 1);
   const chapterChanged = c !== reader.get().chapter;
-  reader.set({ chapter: c, word: w, completed: null });
-  if (chapterChanged) indexParagraphs();
-  rampIndex = 0;
-  wordProgress = 0;
+  reader.set({ chapter: c, completed: null });
+  if (chapterChanged) indexChapter();
+  showFrameAt(w);
+  framesInRun = 0;
+  frameProgress = 0;
   if (save) persist();
 }
 
@@ -154,13 +172,14 @@ function tick(now: number) {
   const rate = state.rate ?? library.get().settings.wpm;
   if (rate !== 0) {
     const forward = rate > 0;
-    const word = state.content[state.chapter].words[state.word];
-    // Pauses for punctuation and the ramp-up only make sense reading forwards.
-    const weight = forward ? wordWeight(word, paraEnds.has(state.word)) : 1;
-    const ramp = forward && rampIndex < RAMP_WORDS ? 1 + 0.8 * ((RAMP_WORDS - rampIndex) / RAMP_WORDS) : 1;
-    wordProgress += dt / (baseInterval(Math.abs(rate)) * weight * ramp);
-    if (wordProgress >= 1) {
-      wordProgress = Math.min(wordProgress - 1, 0.5);
+    const style = currentStyle();
+    const words = state.content[state.chapter].words;
+    // Pauses, length bonuses and the ramp-up only make sense reading forwards; backwards is a scan.
+    const weight = forward ? frameWeight(words, state.word, state.frameEnd, paraEnds, style) : state.frameEnd - state.word;
+    const ramp = forward ? rampFactor(framesInRun, style) : 1;
+    frameProgress += dt / (baseInterval(Math.abs(rate)) * weight * ramp);
+    if (frameProgress >= 1) {
+      frameProgress = Math.min(frameProgress - 1, 0.5);
       step(forward);
       if (!reader.get().playing) return;
     }
@@ -169,17 +188,29 @@ function tick(now: number) {
 }
 
 function step(forward: boolean) {
-  const { content, chapter, word } = reader.get();
+  const { content, word } = reader.get();
   if (!content) return;
+  const index = frameIndexOf(frameStarts, word);
   if (forward) {
-    if (word >= content[chapter].words.length - 1) return completeChapter();
-    reader.set({ word: word + 1 });
-    rampIndex++;
-  } else if (word > 0) {
+    if (index >= frameStarts.length - 1) return completeChapter();
+    showFrame(index + 1);
+    framesInRun++;
+  } else if (index > 0) {
     // Reading backwards holds at the start of the chapter rather than crossing into the previous one.
-    reader.set({ word: word - 1 });
+    showFrame(index - 1);
   }
   if (Date.now() - lastSave > SAVE_EVERY_MS) persist();
+}
+
+function showFrame(index: number) {
+  const { content, chapter } = reader.get();
+  const total = content?.[chapter]?.words.length ?? 1;
+  reader.set({ word: frameStarts[index], frameEnd: frameStarts[index + 1] ?? total });
+}
+
+/** Shows the frame that contains `word`. */
+function showFrameAt(word: number) {
+  showFrame(frameIndexOf(frameStarts, word));
 }
 
 /** Each chapter is its own session: stop at the end, celebrate, and wait on the next one. */
@@ -191,14 +222,23 @@ function completeChapter() {
   reader.set({ completed: chapter });
 }
 
-function indexParagraphs() {
-  const { content, chapter } = reader.get();
-  const paras = content?.[chapter]?.paras ?? [];
-  // A paragraph ends on the word before the next one starts.
-  paraEnds = new Set(paras.map((p) => p - 1).filter((p) => p >= 0));
-  const total = content?.[chapter]?.words.length ?? 0;
-  if (total) paraEnds.add(total - 1);
+/** Works out paragraph ends and frames for the current chapter and style, keeping the current place. */
+function indexChapter() {
+  const { content, chapter, word } = reader.get();
+  const current = content?.[chapter];
+  if (!current) return;
+  paraEnds = paragraphEnds(current.paras, current.words.length);
+  frameStarts = buildFrames(current.words, paraEnds, currentStyle());
+  showFrameAt(word);
 }
+
+// Switching styles mid-chapter re-cuts the frames around the current word.
+library.subscribe(() => {
+  const next = library.get().settings.style;
+  if (next === styleId) return;
+  styleId = next;
+  indexChapter();
+});
 
 function persist() {
   const { book, content, chapter, word } = reader.get();

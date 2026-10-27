@@ -14,19 +14,6 @@ export function endsSentence(word: string): boolean {
   return /[.!?…]$/.test(word.replace(TRAILING_CLOSERS, ""));
 }
 
-/** How long a word stays on screen, relative to the base interval. */
-export function wordWeight(word: string, endsParagraph: boolean): number {
-  const bare = word.replace(TRAILING_CLOSERS, "");
-  let weight = 1;
-  if (/[.!?…]$/.test(bare)) weight = 2.2;
-  else if (/[,;:—–]$/.test(bare)) weight = 1.5;
-  if (endsParagraph) weight = Math.max(weight, 2.6);
-  const letters = bare.replace(/[^\p{L}\p{N}]/gu, "").length;
-  if (letters > 8) weight += Math.min((letters - 8) * 0.07, 0.7);
-  if (/\d/.test(bare)) weight += 0.3;
-  return weight;
-}
-
 export function baseInterval(wpm: number): number {
   return 60000 / wpm;
 }
@@ -54,4 +41,19 @@ export function formatDuration(ms: number, compact = false): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m ? `${h}${hr} ${m}${min}` : `${h}${hr}`;
+}
+
+/**
+ * Focus letter for a frame. A single word uses its recognition point; a phrase uses the recognition
+ * point of its longest word, which is where the eye needs to land.
+ */
+export function framePivot(text: string): number {
+  if (!text.includes(" ")) return orpIndex(text);
+  let offset = 0;
+  let best = { start: 0, word: "" };
+  for (const word of text.split(" ")) {
+    if (word.length > best.word.length) best = { start: offset, word };
+    offset += word.length + 1;
+  }
+  return best.start + orpIndex(best.word);
 }
