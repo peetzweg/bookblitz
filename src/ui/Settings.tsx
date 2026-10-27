@@ -13,7 +13,10 @@ import { INTENSITIES, TRANSITION_GROUPS, TRANSITIONS } from "./transitions";
 declare const __APP_VERSION__: string;
 declare const __COMMIT__: string;
 
-const RESEARCH_URL = "https://github.com/peetzweg/bookblitz/blob/main/docs/research/speed-reading.md";
+const REPO_URL = "https://github.com/peetzweg/bookblitz";
+const RESEARCH_URL = `${REPO_URL}/blob/main/docs/research/speed-reading.md`;
+const KOFI_URL = "https://ko-fi.com/peetzweg";
+const SPONSOR_URL = "https://github.com/sponsors/peetzweg";
 
 /** iOS-style grouped settings. The reading style is the same live taste test as the onboarding. */
 export function Settings() {
@@ -120,10 +123,27 @@ export function Settings() {
         </button>
       </section>
 
+      <h2 className="settings-heading">Support bookblitz</h2>
+      <section className="settings-group">
+        <a className="settings-row pressable" href={KOFI_URL} target="_blank" rel="noreferrer">
+          <span>Buy me a coffee on Ko-fi</span>
+          <span className="settings-value">›</span>
+        </a>
+        <a className="settings-row pressable" href={SPONSOR_URL} target="_blank" rel="noreferrer">
+          <span>Sponsor on GitHub</span>
+          <span className="settings-value">›</span>
+        </a>
+      </section>
+      <p className="settings-footnote">Free, with no ads and no tracking, and built by one person.</p>
+
       <h2 className="settings-heading">About</h2>
       <section className="settings-group">
         <a className="settings-row pressable" href={RESEARCH_URL} target="_blank" rel="noreferrer">
           <span>How the reading styles are timed</span>
+          <span className="settings-value">›</span>
+        </a>
+        <a className="settings-row pressable" href={REPO_URL} target="_blank" rel="noreferrer">
+          <span>Source code on GitHub</span>
           <span className="settings-value">›</span>
         </a>
         <div className="settings-row">

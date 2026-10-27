@@ -14,6 +14,15 @@
 </p>
 
 <p align="center">
+  <a href="https://ko-fi.com/peetzweg">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/support_me_on_kofi_beige.png">
+      <img src="docs/support_me_on_kofi_dark.png" width="200" alt="Support me on Ko-fi">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
   <img src="docs/demo.gif" width="720" alt="The opening lines of Alice in Wonderland flashing one word at a time in the bookblitz reader, each word's focus letter in green on a fixed mark">
   <br>
   <sub>The opening of <em>Alice in Wonderland</em> at 300 words per minute, timed by the app's own reader.</sub>
@@ -81,6 +90,11 @@ EPUBs, and [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app) generates the s
 **Deploys:** every push to `main` builds to GitHub Pages ([workflow](.github/workflows/pages.yml)). The build
 reads `BASE_PATH` (where the app is served from) and `SITE_URL` (used for canonical and share links). Both
 fall back to sensible defaults on Vercel and Netlify.
+
+## Support
+
+bookblitz is free, has no ads and no tracking, and is built by one person. If it helps you read more, you can
+[buy me a coffee on Ko-fi](https://ko-fi.com/peetzweg) or [sponsor me on GitHub](https://github.com/sponsors/peetzweg).
 
 ## Credits
 
