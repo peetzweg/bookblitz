@@ -2047,6 +2047,12 @@ ol {
   font-variant-numeric: tabular-nums;
 }
 
+.lab-intensity {
+  width: 100%;
+  max-width: 460px;
+  margin-bottom: 0;
+}
+
 .style-picker.embedded {
   flex: none;
   overflow: visible;

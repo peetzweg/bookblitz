@@ -3,7 +3,7 @@ import { reader } from "../reader/reader";
 import { framePivot } from "../reader/rsvp";
 import { library } from "../store/library";
 import { useStore } from "../store/store";
-import { reduceKeyframes, transitionMs, TRANSITIONS, type TransitionId } from "./transitions";
+import { reduceKeyframes, transitionFrames, type Intensity, type TransitionId } from "./transitions";
 
 /** The frame the reader is on: one word, or a short phrase in phrase styles. */
 export function WordDisplay() {
@@ -11,9 +11,10 @@ export function WordDisplay() {
   const frameKey = useStore(reader, (s) => `${s.chapter}:${s.word}`);
   const playing = useStore(reader, (s) => s.playing);
   const transition = useStore(library, (s) => s.settings.transition ?? "cut");
+  const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   const wpm = useStore(library, (s) => s.settings.wpm);
   // Only animate while reading; a jump while paused should just show the word.
-  return <WordView text={text} frameKey={frameKey} transition={playing ? transition : "cut"} wpm={wpm} />;
+  return <WordView text={text} frameKey={frameKey} transition={playing ? transition : "cut"} intensity={intensity} wpm={wpm} />;
 }
 
 interface WordViewProps {
@@ -21,6 +22,7 @@ interface WordViewProps {
   /** Changes with every frame, even when two frames have the same text ("that that"). */
   frameKey?: string;
   transition?: TransitionId;
+  intensity?: Intensity;
   wpm?: number;
 }
 
@@ -30,15 +32,14 @@ interface WordViewProps {
  * guides, not the box height (long text shrinks inside a fixed-height row). With a transition, the
  * previous frame stays a moment as a ghost layer underneath, playing its exit.
  */
-export function WordView({ text, frameKey = text, transition = "cut", wpm = 300 }: WordViewProps) {
-  const style = TRANSITIONS[transition] ?? TRANSITIONS.cut;
-  const duration = transitionMs(wpm);
+export function WordView({ text, frameKey = text, transition = "cut", intensity = "noticeable", wpm = 300 }: WordViewProps) {
+  const frames = transitionFrames(transition, intensity, wpm);
   const [current, setCurrent] = useState({ key: frameKey, text });
   const [ghost, setGhost] = useState<{ key: string; text: string } | null>(null);
 
   // A new frame: the one on screen becomes the ghost (derived state, set during render).
   if (current.key !== frameKey) {
-    setGhost(style.exit ? current : null);
+    setGhost(frames.exit ? current : null);
     setCurrent({ key: frameKey, text });
   } else if (current.text !== text) {
     // Same place, re-cut text (the style changed): just show it.
@@ -47,18 +48,18 @@ export function WordView({ text, frameKey = text, transition = "cut", wpm = 300 
 
   useEffect(() => {
     if (!ghost) return;
-    const timer = setTimeout(() => setGhost(null), duration * style.exitLength + 20);
+    const timer = setTimeout(() => setGhost(null), frames.exitMs + 20);
     return () => clearTimeout(timer);
-  }, [ghost, duration, style.exitLength]);
+  }, [ghost, frames.exitMs]);
 
   return (
     <div className="rsvp">
       <div className="rsvp-guide top" />
       <div className="rsvp-word" aria-live="off">
         {ghost && (
-          <Layer key={`out:${ghost.key}`} text={ghost.text} frames={style.exit} duration={duration * style.exitLength} />
+          <Layer key={`out:${ghost.key}`} text={ghost.text} frames={frames.exit} duration={frames.exitMs} />
         )}
-        <Layer key={`in:${current.key}`} text={current.text} frames={style.enter} duration={duration} />
+        <Layer key={`in:${current.key}`} text={current.text} frames={frames.enter} duration={frames.enterMs} />
       </div>
       <div className="rsvp-guide bottom" />
     </div>

@@ -8,7 +8,7 @@ import { FONT_NAMES, FONTS } from "./fonts";
 import { goBack } from "./router";
 import { Slider } from "./Slider";
 import { SamplePlayer, StylePicker } from "./StylePicker";
-import { TRANSITION_ORDER, TRANSITIONS } from "./transitions";
+import { INTENSITIES, TRANSITION_ORDER, TRANSITIONS } from "./transitions";
 
 declare const __APP_VERSION__: string;
 declare const __COMMIT__: string;
@@ -139,10 +139,25 @@ export function Settings() {
 /** Live preview plus the variants; picking one applies it straight away, here and in the reader. */
 function TransitionLab() {
   const current = useStore(library, (s) => s.settings.transition ?? "cut");
+  const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   return (
     <div className="style-picker embedded">
       <div className="style-preview">
         <SamplePlayer transition={current} />
+      </div>
+      <div className="segmented lab-intensity" role="radiogroup" aria-label="Intensity">
+        {INTENSITIES.map((level) => (
+          <button
+            key={level.id}
+            role="radio"
+            aria-selected={intensity === level.id}
+            className="segment"
+            onClick={() => updateSettings({ transitionIntensity: level.id })}
+          >
+            {intensity === level.id && <span className="segment-indicator" />}
+            <span className="segment-label">{level.name}</span>
+          </button>
+        ))}
       </div>
       <div className="style-options" role="radiogroup" aria-label="Word transition">
         {TRANSITION_ORDER.map((id) => (

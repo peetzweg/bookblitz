@@ -43,6 +43,24 @@ Nothing tests animated transitions directly. These adjacent findings constrain t
 
 Defined in `src/ui/transitions.ts`; under reduced motion only the opacity part plays.
 
+## Intensity, and Emil Kowalski's frequency gate
+
+The first version kept every transition under a third of a word's slot (about 57 ms at 350 wpm), which
+in practice was imperceptible. That matches Emil Kowalski's animation gate: an action seen 100+ times a
+day shouldn't animate, and word swaps happen 5–6 times a second, so by that rule Cut is correct. The
+open question is perceptual (does a softer hand-over reduce strain?), and that can only be judged at a
+strength you can see. The lab therefore has three intensities:
+
+| Intensity | Duration | Amplitude |
+| --- | --- | --- |
+| Subtle | 33% of a word, 45–110 ms | ×1 (the values above) |
+| Noticeable (lab default) | 60% of a word, 90–180 ms | ×2 |
+| Strong | 90% of a word, 120–260 ms | ×3 |
+
+Blur stays at or below 16 px (Emil: keep animated blur under 20 px; Safari repaints filters). Soften is
+the cheapest (opacity only); Echo is the most expensive (blurred layer held 3× as long). Confirm on a
+real phone with a recording before keeping any.
+
 ## How to judge
 
 Read a full chapter with each, at your usual speed. Signals worth noting: how tired your eyes feel after

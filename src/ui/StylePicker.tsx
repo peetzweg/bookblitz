@@ -102,6 +102,7 @@ export function StylePicker({ onDone, embedded = false }: { onDone?: (style: Sty
  * exactly like reading. Both default to your current settings.
  */
 export function SamplePlayer({ style: id, transition }: { style?: StyleId; transition?: TransitionId }) {
+  const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   const wpm = useStore(library, (s) => s.settings.wpm);
   const savedStyle = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const savedTransition = useStore(library, (s) => s.settings.transition ?? "cut");
@@ -126,5 +127,5 @@ export function SamplePlayer({ style: id, transition }: { style?: StyleId; trans
 
   const start = starts[Math.min(index, starts.length - 1)];
   const end = starts[index + 1] ?? SAMPLE.length;
-  return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} wpm={wpm} />;
+  return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} intensity={intensity} wpm={wpm} />;
 }

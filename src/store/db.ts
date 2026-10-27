@@ -1,6 +1,6 @@
 import { openDB, type DBSchema } from "idb";
 import type { StyleId } from "../reader/timing";
-import type { TransitionId } from "../ui/transitions";
+import type { Intensity, TransitionId } from "../ui/transitions";
 
 export interface ChapterMeta {
   title: string;
@@ -57,6 +57,8 @@ export interface Settings {
   styleChosen?: boolean;
   /** Experimental: how one word hands over to the next (see ui/transitions.ts). Unset means a hard cut. */
   transition?: TransitionId;
+  /** How strong the experimental transition is. Unset means "noticeable". */
+  transitionIntensity?: Intensity;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };
