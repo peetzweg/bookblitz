@@ -33,7 +33,12 @@ const base = process.env.BASE_PATH ?? "/";
 function seo(): Plugin {
   return {
     name: "bookblitz-seo",
-    transformIndexHtml: { order: "pre", handler: (html) => html.replaceAll("%SITE_URL%", siteUrl) },
+    transformIndexHtml: {
+      order: "pre",
+      handler: (html) =>
+        // Without an origin (local builds) a relative canonical says nothing, and Vite would try to bundle "/".
+        (siteUrl ? html : html.replace(/\s*<link rel="canonical"[^>]*>/, "")).replaceAll("%SITE_URL%", siteUrl),
+    },
     generateBundle() {
       const robots = ["User-agent: *", "Allow: /", ...(siteUrl ? [`Sitemap: ${siteUrl}/sitemap.xml`] : [])];
       this.emitFile({ type: "asset", fileName: "robots.txt", source: robots.join("\n") + "\n" });
