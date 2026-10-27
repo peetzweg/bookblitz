@@ -1567,6 +1567,21 @@ ol {
   margin-top: 4px;
 }
 
+/* The word flying between the centre and the paragraph (see ui/wordMorph.ts). */
+.word-morph {
+  position: fixed;
+  z-index: 100;
+  white-space: pre;
+  transform-origin: 0 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The highlight fades in under the landing copy; the big word swaps in instantly. */
+.ctx-current {
+  transition: opacity 120ms var(--ease-out);
+}
+
 /* ---------- Reading overlay ---------- */
 
 /*

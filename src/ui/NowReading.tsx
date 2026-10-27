@@ -8,6 +8,7 @@ import { useStore } from "../store/store";
 import { ChapterComplete, ChapterIntro } from "./ChapterCards";
 import { Cover } from "./Cover";
 import { land, takeOff } from "./coverFlight";
+import { morphWord } from "./wordMorph";
 import { ContextView } from "./ContextView";
 import { BackIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
@@ -61,6 +62,20 @@ function Sheet() {
     const offset = sheet.getBoundingClientRect().top - parseFloat(getComputedStyle(sheet).top);
     land(flightTarget(), offset);
   }, []);
+
+  // Pausing shrinks the word down into its place in the paragraph; playing lifts it back out. Runs after
+  // the paragraph has re-rendered and scrolled (child layout effects run first), so both ends exist.
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    const sheet = sheetRef.current;
+    const s = reader.get();
+    const text = s.content?.[s.chapter]?.words.slice(s.word, s.frameEnd).join(" ") ?? "";
+    if (sheet) morphWord(sheet, text, !playing);
+  }, [playing]);
 
   const close = () => {
     takeOff(flightTarget());
