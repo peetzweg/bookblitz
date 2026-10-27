@@ -24,8 +24,10 @@ const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").match
 /** The big word in the reading overlay: where its text starts, and its size. */
 function overlayWord(sheet: HTMLElement): { box: Box; el: HTMLElement } | undefined {
   const el = sheet.querySelector<HTMLElement>(".reading-word");
-  const anchor = el?.querySelector<HTMLElement>(".rsvp-anchor");
-  const before = el?.querySelector<HTMLElement>(".rsvp-before");
+  // The front layer is the current word; a transition may leave the previous one fading underneath.
+  const layer = el?.querySelector<HTMLElement>(".rsvp-layer:last-child");
+  const anchor = layer?.querySelector<HTMLElement>(".rsvp-anchor");
+  const before = layer?.querySelector<HTMLElement>(".rsvp-before");
   if (!el || !anchor || !before) return;
   const a = anchor.getBoundingClientRect();
   const b = before.getBoundingClientRect();
@@ -70,14 +72,14 @@ export function morphWord(sheet: HTMLElement, text: string, toParagraph: boolean
   const bigText = big.el.querySelector<HTMLElement>(".rsvp-word") ?? big.el;
   const hidden: HTMLElement[] = toParagraph ? [bigText, ...small.els] : [bigText];
 
-  const anchor = big.el.querySelector<HTMLElement>(".rsvp-anchor")!;
+  const anchor = big.el.querySelector<HTMLElement>(".rsvp-layer:last-child .rsvp-anchor")!;
   // Drawn exactly like the big word, focus letter included, so nothing changes as it takes off.
   const copy = document.createElement("span");
   copy.className = "word-morph";
   const pivot = framePivot(text);
   const focus = document.createElement("span");
   focus.textContent = text.charAt(pivot);
-  focus.style.color = getComputedStyle(big.el.querySelector(".rsvp-focus") ?? anchor).color;
+  focus.style.color = getComputedStyle(anchor.querySelector(".rsvp-focus") ?? anchor).color;
   copy.append(text.slice(0, pivot), focus, text.slice(pivot + 1));
   Object.assign(copy.style, {
     left: `${from.left}px`,

@@ -1,5 +1,6 @@
 import { openDB, type DBSchema } from "idb";
 import type { StyleId } from "../reader/timing";
+import type { TransitionId } from "../ui/transitions";
 
 export interface ChapterMeta {
   title: string;
@@ -54,6 +55,8 @@ export interface Settings {
   style?: StyleId;
   /** The reading-style taste test has been seen, so it isn't offered again on its own. */
   styleChosen?: boolean;
+  /** Experimental: how one word hands over to the next (see ui/transitions.ts). Unset means a hard cut. */
+  transition?: TransitionId;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

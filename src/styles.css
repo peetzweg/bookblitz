@@ -1380,6 +1380,14 @@ ol {
   height: 1.6em;
 }
 
+/* One per frame; with a transition the previous frame's layer fades out underneath. Scaling happens
+   around the pivot, so the focus letter never moves. */
+.rsvp-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: var(--pivot) 50%;
+}
+
 .rsvp-anchor {
   position: absolute;
   left: var(--pivot);

@@ -4,6 +4,7 @@ import { tokenize } from "../epub/parse";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
 import { CheckIcon } from "./icons";
+import type { TransitionId } from "./transitions";
 import { WordView } from "./WordDisplay";
 
 /** Public domain (Carroll, 1865); has a long word, a clause, a question and a quote to feel the timing on. */
@@ -37,7 +38,7 @@ export function StylePicker({ onDone, embedded = false }: { onDone?: (style: Sty
   return (
     <div className={`style-picker ${embedded ? "embedded" : ""}`}>
       <div className="style-preview">
-        <StylePreview style={selected} />
+        <SamplePlayer style={selected} />
       </div>
       {!embedded && (
         <div className="style-intro">
@@ -96,9 +97,16 @@ export function StylePicker({ onDone, embedded = false }: { onDone?: (style: Sty
   );
 }
 
-/** Plays the sample on a loop with the real timing functions, so a preview feels exactly like reading. */
-function StylePreview({ style: id }: { style: StyleId }) {
+/**
+ * Plays the sample on a loop with the real timing functions and word transition, so a preview feels
+ * exactly like reading. Both default to your current settings.
+ */
+export function SamplePlayer({ style: id, transition }: { style?: StyleId; transition?: TransitionId }) {
   const wpm = useStore(library, (s) => s.settings.wpm);
+  const savedStyle = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
+  const savedTransition = useStore(library, (s) => s.settings.transition ?? "cut");
+  id ??= savedStyle;
+  transition ??= savedTransition;
   const style = STYLES[id];
   const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
   const [index, setIndex] = useState(0);
@@ -118,5 +126,5 @@ function StylePreview({ style: id }: { style: StyleId }) {
 
   const start = starts[Math.min(index, starts.length - 1)];
   const end = starts[index + 1] ?? SAMPLE.length;
-  return <WordView text={SAMPLE.slice(start, end).join(" ")} />;
+  return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} wpm={wpm} />;
 }
