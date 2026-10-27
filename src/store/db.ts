@@ -90,7 +90,21 @@ export async function resetDatabase() {
   });
 }
 
-export const db = {
+/** A storage call that hasn't answered by now is stuck, not slow. */
+const STUCK_AFTER_MS = 6000;
+let onStuck: () => void = () => {};
+
+/** Called when any storage call hangs. Safari can wedge its IndexedDB so calls never settle and never fail. */
+export function onStorageStuck(callback: () => void) {
+  onStuck = callback;
+}
+
+function watch<T>(promise: Promise<T>): Promise<T> {
+  const timer = setTimeout(() => onStuck(), STUCK_AFTER_MS);
+  return promise.finally(() => clearTimeout(timer));
+}
+
+const calls = {
   async books() {
     return (await dbPromise).getAll("books");
   },
@@ -133,3 +147,10 @@ export const db = {
     return (await dbPromise).put("settings", settings, "settings");
   },
 };
+
+type Calls = typeof calls;
+
+/** Every storage call, watched for hangs. */
+export const db = Object.fromEntries(
+  Object.entries(calls).map(([name, call]) => [name, (...args: never[]) => watch((call as (...a: never[]) => Promise<unknown>)(...args))]),
+) as Calls;

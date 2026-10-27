@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { openBook, reader } from "./reader/reader";
-import { addSampleBook, importFiles, library, loadLibrary } from "./store/library";
+import { addSampleBook, importFiles, library, loadLibrary, retryLibrary } from "./store/library";
 import { useStore } from "./store/store";
 import { BookPage } from "./ui/BookPage";
 import { Library } from "./ui/Library";
@@ -12,6 +12,8 @@ export function App() {
   const route = useRoute();
   const sheetOpen = useStore(reader, (s) => s.open);
   const toast = useStore(library, (s) => s.toast);
+  // Once the library is up, a hang is shown as a banner; before that, Library shows a full screen.
+  const storageStuck = useStore(library, (s) => s.stuck && s.ready);
   const fileInput = useRef<HTMLInputElement>(null);
   const [dropping, setDropping] = useState(false);
   // Scale the page around the middle of the viewport, not the middle of the whole document.
@@ -79,6 +81,14 @@ export function App() {
         }}
       />
       {toast && <div className="toast" role="status">{toast}</div>}
+      {storageStuck && (
+        <div className="storage-banner" role="alert">
+          <span>Storage isn’t responding, so changes aren’t being saved.</span>
+          <button className="pill-button filled" onClick={retryLibrary}>
+            Try Again
+          </button>
+        </div>
+      )}
       {dropping && <div className="drop-overlay">Drop EPUB to add</div>}
     </>
   );

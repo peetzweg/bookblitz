@@ -1,5 +1,5 @@
 import { parseEpub } from "../epub/parse";
-import { closeDatabase, db, DEFAULT_SETTINGS, resetDatabase, type BookMeta, type Progress, type Settings } from "./db";
+import { closeDatabase, db, DEFAULT_SETTINGS, onStorageStuck, resetDatabase, type BookMeta, type Progress, type Settings } from "./db";
 import { createStore } from "./store";
 
 interface LibraryState {
@@ -22,16 +22,11 @@ export const library = createStore<LibraryState>({
   importing: 0,
 });
 
-const STUCK_AFTER_MS = 6000;
+onStorageStuck(() => library.set({ stuck: true }));
 
 export async function loadLibrary() {
-  const stuckTimer = setTimeout(() => library.set({ stuck: true }), STUCK_AFTER_MS);
-  try {
-    const [books, progress, settings] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
-    library.set({ ready: true, stuck: false, books: sortBooks(books, progress), progress, settings });
-  } finally {
-    clearTimeout(stuckTimer);
-  }
+  const [books, progress, settings] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
+  library.set({ ready: true, books: sortBooks(books, progress), progress, settings });
 }
 
 /** Reconnects to storage from scratch, keeping all data. Enough to un-stick Safari in testing. */
