@@ -4,6 +4,9 @@ import pkg from "./package.json" with { type: "json" };
 
 /** Short commit of the build, shown in Settings so you can tell which version a phone is running. */
 const commit = (() => {
+  // Vercel and Netlify builds may not have the .git directory; both expose the commit instead.
+  const fromHost = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.COMMIT_REF;
+  if (fromHost) return fromHost.slice(0, 7);
   try {
     return execSync("git rev-parse --short HEAD").toString().trim();
   } catch {
