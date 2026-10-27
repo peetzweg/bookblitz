@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+  The social card (1200×630). render.sh screenshots it once per frame:
+  card.html?w=<text>&p=<pivot index>. Without a word it shows the poster word.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * { margin: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        --ink: #111;
+        --paper: #f6f4ee;
+        --green: #278459;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        position: relative;
+      }
+      .brand { position: absolute; top: 52px; left: 64px; display: flex; align-items: center; gap: 16px; }
+      .brand img { width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06); }
+      .brand span { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+      .chips { position: absolute; top: 62px; right: 64px; display: flex; gap: 10px; }
+      .chips span {
+        font-size: 19px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+        background: rgb(17 17 17 / 0.06); color: rgb(17 17 17 / 0.72);
+      }
+      .chips span:first-child { background: var(--green); color: #fff; }
+
+      /* The reader's display, same geometry as .rsvp in the app. */
+      .rsvp { position: absolute; left: 64px; right: 64px; top: 172px; --pivot: 40%; }
+      .guide { position: relative; height: 18px; }
+      .guide::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: rgb(17 17 17 / 0.12); }
+      .guide::after {
+        content: ""; position: absolute; left: var(--pivot); width: 3px; height: 16px; border-radius: 2px;
+        background: rgb(17 17 17 / 0.4); transform: translateX(-50%);
+      }
+      .guide.top::before, .guide.top::after { top: 0; }
+      .guide.bottom::before, .guide.bottom::after { bottom: 0; }
+      .word { position: relative; height: 150px; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 104px; font-weight: 500; }
+      .anchor { position: absolute; left: var(--pivot); top: 50%; transform: translate(-50%, -50%); line-height: 1; white-space: pre; }
+      .before { position: absolute; right: 100%; top: 0; }
+      .after { position: absolute; left: 100%; top: 0; }
+      .focus { color: var(--green); }
+
+      .copy { position: absolute; left: 64px; right: 64px; bottom: 56px; }
+      h1 { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 58px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.05; }
+      p { margin-top: 14px; font-size: 26px; color: rgb(17 17 17 / 0.62); letter-spacing: -0.005em; }
+    </style>
+  </head>
+  <body>
+    <div class="brand"><img src="../../public/favicon.svg" alt="" /><span>bookblitz</span></div>
+    <div class="chips"><span>EPUB</span><span>Local first</span><span>Offline</span></div>
+    <div class="rsvp">
+      <div class="guide top"></div>
+      <div class="word"><span class="anchor"><span class="before"></span><span class="focus"></span><span class="after"></span></span></div>
+      <div class="guide bottom"></div>
+    </div>
+    <div class="copy">
+      <h1>Speed-read your own books.</h1>
+      <p>Bring your own EPUBs. They stay on your device: no account, no upload.</p>
+    </div>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const text = q.get("w") ?? "Wonderland";
+      const pivot = Number(q.get("p") ?? 2);
+      // Long frames shrink so they stay on the card, like the reader's --word-scale.
+      document.querySelector(".anchor").style.fontSize = `${Math.min(1, 13 / Math.max(text.length, 1))}em`;
+      document.querySelector(".before").textContent = text.slice(0, pivot);
+      document.querySelector(".focus").textContent = text.charAt(pivot);
+      document.querySelector(".after").textContent = text.slice(pivot + 1);
+    </script>
+  </body>
+</html>

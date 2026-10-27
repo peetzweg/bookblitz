@@ -11,10 +11,112 @@
     <!-- "default" keeps dark status bar text on the light theme; black-translucent forces white text. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="bookblitz" />
-    <title>bookblitz</title>
+    <meta name="application-name" content="bookblitz" />
+
+    <!-- Search and sharing. %SITE_URL% is the deployed origin, filled in at build (vite.config.ts). -->
+    <title>bookblitz · Speed reader for your own EPUBs, local first</title>
+    <meta
+      name="description"
+      content="Speed-read your own EPUBs one word at a time. Bring your own books: they stay on your device. No account, no upload, works offline."
+    />
+    <meta name="keywords" content="speed reading, EPUB reader, RSVP reader, local-first, bring your own books, offline reading, PWA" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="%SITE_URL%/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="bookblitz" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="bookblitz · Speed-read your own EPUBs" />
+    <meta
+      property="og:description"
+      content="Bring your own books. EPUBs are read in your browser and stay on your device: no account, no upload, works offline."
+    />
+    <meta property="og:image" content="%SITE_URL%/og.png" />
+    <meta property="og:image:secure_url" content="%SITE_URL%/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The word “Wonderland” in the bookblitz reader, with its focus letter in green, above the line “Speed-read your own books.”" />
+    <meta property="og:video" content="%SITE_URL%/og.mp4" />
+    <meta property="og:video:secure_url" content="%SITE_URL%/og.mp4" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="1200" />
+    <meta property="og:video:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="bookblitz · Speed-read your own EPUBs" />
+    <meta
+      name="twitter:description"
+      content="Bring your own books. EPUBs stay on your device: no account, no upload, works offline."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og.png" />
+    <meta name="twitter:image:alt" content="The word “Wonderland” in the bookblitz reader, with its focus letter in green." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "bookblitz",
+        "url": "%SITE_URL%/",
+        "description": "A local-first speed reader for your own EPUBs. Books are parsed in the browser and kept on your device; nothing is uploaded and there is no account.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any modern browser; installable on iOS, Android and desktop",
+        "browserRequirements": "Requires JavaScript and IndexedDB",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "image": "%SITE_URL%/og.png",
+        "screenshot": "%SITE_URL%/og.png",
+        "featureList": [
+          "Bring your own EPUBs, imported from Files or iCloud Drive",
+          "Local first: books and progress stay on your device",
+          "No account and no upload",
+          "Works offline as an installable app",
+          "One word at a time (RSVP) with a fixed focus letter",
+          "Reading styles timed from speed-reading research",
+          "Drag to change speed or read backwards"
+        ]
+      }
+    </script>
+    <style>
+      /* The no-JavaScript intro (see #root below). Hidden while the app boots; shown only if it doesn't. */
+      .static-intro {
+        max-width: 34rem;
+        margin: 0 auto;
+        padding: 15vh 24px 48px;
+        font: 17px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        opacity: 0;
+        animation: static-intro-in 0.4s ease-out 2s forwards;
+      }
+      .static-intro h1 { font: 600 2.4rem/1.1 ui-serif, "Iowan Old Style", Georgia, serif; margin-bottom: 0.5em; }
+      .static-intro p, .static-intro ul { margin-bottom: 1em; }
+      .static-intro ul { padding-left: 1.2em; list-style: disc; }
+      @keyframes static-intro-in { to { opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        What crawlers and link previews see without JavaScript; React replaces it on mount. It only
+        fades in if the app hasn't started after a moment, so it never flashes before the library.
+      -->
+      <main class="static-intro">
+        <h1>bookblitz</h1>
+        <p><strong>Speed-read your own EPUBs, one word at a time.</strong></p>
+        <p>
+          Bring your own books. bookblitz reads EPUB files in your browser and keeps them, and your reading progress, on
+          your device. There's no account, nothing is uploaded, and once it's on your Home Screen it works offline.
+        </p>
+        <ul>
+          <li>EPUB first: import from Files, iCloud Drive or your computer</li>
+          <li>Local first: your library lives in your browser's storage</li>
+          <li>Reading styles timed from speed-reading research, with a fixed focus letter</li>
+          <li>Drag up to read faster, down to slow down or read backwards</li>
+        </ul>
+        <noscript><p>bookblitz needs JavaScript to open your books.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
