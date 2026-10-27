@@ -47,6 +47,8 @@ export interface Settings {
   lastBookId?: string;
   /** Set once the sample book has been offered, so deleting it doesn't bring it back. */
   sampleAdded?: boolean;
+  /** The "add to Home Screen" card was closed. */
+  installHintDismissed?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

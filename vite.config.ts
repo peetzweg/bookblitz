@@ -6,22 +6,25 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon-180x180.png"],
+      // Ask before swapping in a new version: a silent reload could land mid-chapter.
+      registerType: "prompt",
+      // Icons, iOS launch screens and their <link> tags are generated from pwa-assets.config.ts.
+      pwaAssets: { config: true, overrideManifestIcons: true, includeHtmlHeadLinks: true, injectThemeColor: false },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,epub}"],
+        // Launch screens are large and only read by iOS at install time.
+        globIgnores: ["**/apple-splash-*"],
+      },
       manifest: {
+        id: "/",
         name: "bookblitz",
         short_name: "bookblitz",
         description: "Speed-read your EPUBs, one word at a time.",
-        theme_color: "#278459",
-        background_color: "#000000",
+        theme_color: "#ffffff",
+        background_color: "#ffffff",
         display: "standalone",
-        orientation: "portrait",
-        icons: [
-          { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
-          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "maskable-icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        ],
+        categories: ["books", "education"],
+        shortcuts: [{ name: "Continue Reading", short_name: "Continue", url: "/?resume=1" }],
       },
     }),
   ],

@@ -1751,6 +1751,70 @@ ol {
   }
 }
 
+.install-card {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 40px 14px 14px;
+  border-radius: 16px;
+  background: var(--bg-grouped);
+}
+
+.install-icon {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 12px;
+}
+
+.install-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.install-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.install-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--label-2);
+}
+
+.inline-icon {
+  vertical-align: -2px;
+  color: var(--accent);
+}
+
+.install-button {
+  height: 34px;
+  padding: 0 16px;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.install-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--label-3);
+}
+
+.install-close:active {
+  background: var(--fill);
+}
+
 .storage-banner {
   position: fixed;
   z-index: 55;

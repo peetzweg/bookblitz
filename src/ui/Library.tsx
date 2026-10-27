@@ -8,6 +8,7 @@ import { useStore } from "../store/store";
 import { Cover } from "./Cover";
 import { takeOff } from "./coverFlight";
 import { BookIcon, CheckCircleIcon, PlayIcon, PlusIcon } from "./icons";
+import { InstallCard } from "./InstallCard";
 import { openBookPage } from "./router";
 
 type Filter = "all" | BookStatus;
@@ -44,6 +45,8 @@ export function Library({ onAdd }: { onAdd: () => void }) {
           <PlusIcon size={22} />
         </button>
       </header>
+
+      {ready && books.length > 0 && <InstallCard />}
 
       {stuck && !ready && (
         <section className="empty">

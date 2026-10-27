@@ -6,6 +6,7 @@ import { BookPage } from "./ui/BookPage";
 import { Library } from "./ui/Library";
 import { MiniPlayer } from "./ui/MiniPlayer";
 import { NowReading } from "./ui/NowReading";
+import { applyUpdate, usePwa } from "./pwa";
 import { savedScroll, useRoute } from "./ui/router";
 
 export function App() {
@@ -14,6 +15,7 @@ export function App() {
   const toast = useStore(library, (s) => s.toast);
   // Once the library is up, a hang is shown as a banner; before that, Library shows a full screen.
   const storageStuck = useStore(library, (s) => s.stuck && s.ready);
+  const updateReady = usePwa((s) => s.updateReady);
   const fileInput = useRef<HTMLInputElement>(null);
   const [dropping, setDropping] = useState(false);
   // Scale the page around the middle of the viewport, not the middle of the whole document.
@@ -27,8 +29,11 @@ export function App() {
     loadLibrary().then(() => {
       const { settings, books } = library.get();
       if (!settings.sampleAdded && books.length === 0) addSampleBook();
-      // Bring back the last book in the mini player, like Apple Music does after a restart.
-      if (settings.lastBookId) openBook(settings.lastBookId, { open: false });
+      // The "Continue Reading" home-screen shortcut opens straight into the reader.
+      const resume = new URLSearchParams(location.search).has("resume");
+      if (resume) history.replaceState(null, "", location.pathname + location.hash);
+      // Otherwise bring back the last book in the mini player, like Apple Music does after a restart.
+      if (settings.lastBookId) openBook(settings.lastBookId, { open: resume });
     });
   }, []);
 
@@ -83,6 +88,14 @@ export function App() {
         }}
       />
       {toast && <div className="toast" role="status">{toast}</div>}
+      {updateReady && !storageStuck && (
+        <div className="storage-banner" role="status">
+          <span>A new version of bookblitz is ready.</span>
+          <button className="pill-button filled" onClick={applyUpdate}>
+            Update
+          </button>
+        </div>
+      )}
       {storageStuck && (
         <div className="storage-banner" role="alert">
           <span>Storage isn’t responding, so changes aren’t being saved.</span>
