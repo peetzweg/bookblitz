@@ -33,15 +33,27 @@ Nothing tests animated transitions directly. These adjacent findings constrain t
 
 ## Variants in the app (Settings → Word transitions)
 
-| Variant | Incoming | Outgoing |
-| --- | --- | --- |
-| Cut | instant | instant (baseline) |
-| Soften | opacity 0.4 → 1 | opacity 0.6 → 0, 0.7× duration |
-| Depth | scale 1.07 → 1, blur 2px → 0, opacity 0.35 → 1 | scale 1 → 0.9, blur 0 → 6px, opacity 0.55 → 0 |
-| Drift | +0.14em → 0, opacity 0.4 → 1 | 0 → −0.22em, opacity 0.5 → 0 |
-| Echo | instant | faint afterimage: opacity 0.22 → 0, blur 2 → 5px, 3× duration |
+Sixteen, deliberately wide, in four groups that each push one dimension. The exact keyframes are in
+`src/ui/transitions.ts`; under reduced motion only the opacity part plays.
 
-Defined in `src/ui/transitions.ts`; under reduced motion only the opacity part plays.
+| Group | Variant | What it tests |
+| --- | --- | --- |
+| Fades | Cut | Baseline: instant swap |
+| | Soften | Fade up from partial opacity; old word fades underneath |
+| | Dissolve | Full cross-fade, words overlap (breaks the "no overlap" rule on purpose) |
+| | Blink | Fade out, gap, fade in (breaks the "no gap" rule on purpose) |
+| Depth | Depth | From just in front, recedes into blur |
+| | Zoom | Flying through: words grow past you |
+| | Recede | Words fall away into the distance |
+| | Pop | Springy arrival with overshoot, no exit |
+| Motion | Drift | Small slide in reading direction |
+| | Ticker | Large horizontal slide, like a news ticker |
+| | Rise | Vertical roll, like credits |
+| | Flip | Split-flap 3D tilt (rotateX) |
+| Blur & afterimage | Focus | Sharpen out of / blur into focus, no movement |
+| | Smear | Motion blur: old word stretched and streaked away |
+| | Echo | Faint blurred afterimage of the last word |
+| | Trail | Afterimages that stream away, leaving a trail |
 
 ## Intensity, and Emil Kowalski's frequency gate
 

@@ -59,7 +59,7 @@ export function WordView({ text, frameKey = text, transition = "cut", intensity 
         {ghost && (
           <Layer key={`out:${ghost.key}`} text={ghost.text} frames={frames.exit} duration={frames.exitMs} />
         )}
-        <Layer key={`in:${current.key}`} text={current.text} frames={frames.enter} duration={frames.enterMs} />
+        <Layer key={`in:${current.key}`} text={current.text} frames={frames.enter} duration={frames.enterMs} delay={frames.enterDelayMs} />
       </div>
       <div className="rsvp-guide bottom" />
     </div>
@@ -69,12 +69,12 @@ export function WordView({ text, frameKey = text, transition = "cut", intensity 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 /** One frame's text, positioned on the pivot. Plays its keyframes once, when it mounts. */
-function Layer({ text, frames, duration }: { text: string; frames: Keyframe[] | null; duration: number }) {
+function Layer({ text, frames, duration, delay = 0 }: { text: string; frames: Keyframe[] | null; duration: number; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const keyframes = reduced ? reduceKeyframes(frames) : frames;
-    if (keyframes && ref.current) ref.current.animate(keyframes, { duration, easing: EASE_OUT, fill: "both" });
+    if (keyframes && ref.current) ref.current.animate(keyframes, { duration, delay, easing: EASE_OUT, fill: "both" });
   }, []);
 
   const pivot = framePivot(text);

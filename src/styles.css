@@ -1378,6 +1378,8 @@ ol {
 .rsvp-word {
   position: relative;
   height: 1.6em;
+  /* For the Flip transition's 3D tilt; harmless otherwise. */
+  perspective: 6em;
 }
 
 /* One per frame; with a transition the previous frame's layer fades out underneath. Scaling happens
@@ -2045,6 +2047,41 @@ ol {
   font-size: 15px;
   color: var(--label-2);
   font-variant-numeric: tabular-nums;
+}
+
+/* Sixteen options: keep the live preview in view while scrolling through them. */
+.lab-section {
+  overflow: visible;
+}
+
+.lab-section .style-preview {
+  position: sticky;
+  top: calc(var(--safe-top) + 48px);
+  z-index: 2;
+  margin: -16px -16px 0;
+  padding: 16px 16px 14px;
+  width: calc(100% + 32px);
+  border-radius: 12px 12px 0 0;
+  background: color-mix(in oklab, var(--grouped-cell) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.lab-group {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lab-group-name {
+  margin: 6px 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sheet-fg-2);
 }
 
 .lab-intensity {

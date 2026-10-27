@@ -8,7 +8,7 @@ import { FONT_NAMES, FONTS } from "./fonts";
 import { goBack } from "./router";
 import { Slider } from "./Slider";
 import { SamplePlayer, StylePicker } from "./StylePicker";
-import { INTENSITIES, TRANSITION_ORDER, TRANSITIONS } from "./transitions";
+import { INTENSITIES, TRANSITION_GROUPS, TRANSITIONS } from "./transitions";
 
 declare const __APP_VERSION__: string;
 declare const __COMMIT__: string;
@@ -55,7 +55,7 @@ export function Settings() {
       </p>
 
       <h2 className="settings-heading">Word transitions · Experimental</h2>
-      <section className="settings-group padded">
+      <section className="settings-group padded lab-section">
         <TransitionLab />
       </section>
       <p className="settings-footnote">
@@ -159,23 +159,28 @@ function TransitionLab() {
           </button>
         ))}
       </div>
-      <div className="style-options" role="radiogroup" aria-label="Word transition">
-        {TRANSITION_ORDER.map((id) => (
-          <button
-            key={id}
-            role="radio"
-            aria-checked={current === id}
-            className={`style-option pressable ${current === id ? "selected" : ""}`}
-            onClick={() => updateSettings({ transition: id })}
-          >
-            <span className="style-option-text">
-              <span className="style-option-name">{TRANSITIONS[id].name}</span>
-              <span className="style-option-tagline">{TRANSITIONS[id].description}</span>
-            </span>
-            <span className="style-check">{current === id && <CheckIcon size={16} />}</span>
-          </button>
-        ))}
-      </div>
+      {TRANSITION_GROUPS.map((group) => (
+        <div key={group.name} className="lab-group">
+          <div className="lab-group-name">{group.name}</div>
+          <div className="style-options" role="radiogroup" aria-label={`${group.name} transitions`}>
+            {group.ids.map((id) => (
+              <button
+                key={id}
+                role="radio"
+                aria-checked={current === id}
+                className={`style-option pressable ${current === id ? "selected" : ""}`}
+                onClick={() => updateSettings({ transition: id })}
+              >
+                <span className="style-option-text">
+                  <span className="style-option-name">{TRANSITIONS[id].name}</span>
+                  <span className="style-option-tagline">{TRANSITIONS[id].description}</span>
+                </span>
+                <span className="style-check">{current === id && <CheckIcon size={16} />}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
