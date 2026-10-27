@@ -5,7 +5,7 @@ import {
 } from "@vite-pwa/assets-generator/config";
 
 /** Behind the icon's rounded corners, so the platform's own icon mask never shows a sliver of another colour. */
-const ICON_FILL = { background: "#2a8a5c", fit: "contain" } as const;
+const ICON_FILL = { background: "#f6f4ee", fit: "contain" } as const;
 
 export default defineConfig({
   headLinkOptions: { preset: "2023" },
