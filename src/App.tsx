@@ -7,7 +7,6 @@ import { Library } from "./ui/Library";
 import { Settings } from "./ui/Settings";
 import { MiniPlayer } from "./ui/MiniPlayer";
 import { NowReading } from "./ui/NowReading";
-import { applyUpdate, usePwa } from "./pwa";
 import { savedScroll, useRoute } from "./ui/router";
 
 export function App() {
@@ -16,7 +15,6 @@ export function App() {
   const toast = useStore(library, (s) => s.toast);
   // Once the library is up, a hang is shown as a banner; before that, Library shows a full screen.
   const storageStuck = useStore(library, (s) => s.stuck && s.ready);
-  const updateReady = usePwa((s) => s.updateReady);
   const fileInput = useRef<HTMLInputElement>(null);
   const [dropping, setDropping] = useState(false);
   // Scale the page around the middle of the viewport, not the middle of the whole document.
@@ -95,14 +93,6 @@ export function App() {
         }}
       />
       {toast && <div className="toast" role="status">{toast}</div>}
-      {updateReady && !storageStuck && (
-        <div className="storage-banner" role="status">
-          <span>A new version of bookblitz is ready.</span>
-          <button className="pill-button filled" onClick={applyUpdate}>
-            Update
-          </button>
-        </div>
-      )}
       {storageStuck && (
         <div className="storage-banner" role="alert">
           <span>Storage isn’t responding, so changes aren’t being saved.</span>
