@@ -24,6 +24,8 @@ interface WordViewProps {
   transition?: TransitionId;
   intensity?: Intensity;
   wpm?: number;
+  /** Plays transitions this many times slower, so the lab can show what each one does. */
+  slow?: number;
 }
 
 /**
@@ -32,8 +34,9 @@ interface WordViewProps {
  * guides, not the box height (long text shrinks inside a fixed-height row). With a transition, the
  * previous frame stays a moment as a ghost layer underneath, playing its exit.
  */
-export function WordView({ text, frameKey = text, transition = "cut", intensity = "noticeable", wpm = 300 }: WordViewProps) {
-  const frames = transitionFrames(transition, intensity, wpm);
+export function WordView({ text, frameKey = text, transition = "cut", intensity = "noticeable", wpm = 300, slow = 1 }: WordViewProps) {
+  const base = transitionFrames(transition, intensity, wpm);
+  const frames = { ...base, enterMs: base.enterMs * slow, exitMs: base.exitMs * slow, enterDelayMs: base.enterDelayMs * slow };
   const [current, setCurrent] = useState({ key: frameKey, text });
   const [ghost, setGhost] = useState<{ key: string; text: string } | null>(null);
 
@@ -66,7 +69,11 @@ export function WordView({ text, frameKey = text, transition = "cut", intensity 
   );
 }
 
-const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+/**
+ * An ease-out cubic. A steeper curve (quint) finishes most of the change in the first couple of frames,
+ * which at 100–200ms per transition, and 60fps on phones, leaves nothing to see.
+ */
+const EASE_OUT = "cubic-bezier(0.33, 1, 0.68, 1)";
 
 /** One frame's text, positioned on the pivot. Plays its keyframes once, when it mounts. */
 function Layer({ text, frames, duration, delay = 0 }: { text: string; frames: Keyframe[] | null; duration: number; delay?: number }) {

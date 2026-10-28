@@ -15,6 +15,7 @@ import { Slider } from "./Slider";
 import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { WordDisplay } from "./WordDisplay";
+import { GuidedReading } from "./GuidedReading";
 
 
 const SHEET_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
@@ -37,6 +38,7 @@ function Sheet() {
   const [showStyles, setShowStyles] = useState(false);
   const askStyle = useStore(reader, (s) => s.askStyle);
   const style = useStore(library, (s) => STYLES[s.settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE]);
+  const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
   const dragControls = useDragControls();
   const dragged = useRef(false);
   const sheetRef = useRef<HTMLElement>(null);
@@ -63,6 +65,8 @@ function Sheet() {
       return;
     }
     const sheet = sheetRef.current;
+    // Guided reading already shows the text on the page: nothing to fly.
+    if (guided) return;
     const s = reader.get();
     const text = s.content?.[s.chapter]?.words.slice(s.word, s.frameEnd).join(" ") ?? "";
     if (sheet) morphWord(sheet, text, !playing);
@@ -275,6 +279,7 @@ const HINT_MS = 2600;
 function ReadingOverlay() {
   const playing = useStore(reader, (s) => s.playing);
   const rate = useStore(reader, (s) => s.rate);
+  const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
   const gesture = useRef<{ y: number; base: number; moved: boolean; rate: number } | null>(null);
   const suppressClick = useRef(false);
   const [hint, setHint] = useState(false);
@@ -298,7 +303,7 @@ function ReadingOverlay() {
 
   return (
     <div
-      className={`reading-overlay ${playing ? "visible" : ""}`}
+      className={`reading-overlay ${playing ? "visible" : ""} ${guided ? "guided-overlay" : ""}`}
       aria-hidden={!playing}
       onPointerDown={(e) => {
         suppressClick.current = false;
@@ -331,7 +336,7 @@ function ReadingOverlay() {
           {rate === null || rate > 0 ? <ForwardIcon size={13} /> : rate < 0 ? <BackIcon size={13} /> : <PauseIcon size={11} />}
           <span>{rate === null ? "" : rate === 0 ? "Hold" : `${Math.abs(rate)} wpm${rate < 0 ? " back" : ""}`}</span>
         </div>
-        <WordDisplay />
+        {guided ? <GuidedReading /> : <WordDisplay />}
       </div>
       <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↑ faster, ↓ slower</div>
       <ChapterHairline />

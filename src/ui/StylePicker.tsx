@@ -101,7 +101,7 @@ export function StylePicker({ onDone, embedded = false }: { onDone?: (style: Sty
  * Plays the sample on a loop with the real timing functions and word transition, so a preview feels
  * exactly like reading. Both default to your current settings.
  */
-export function SamplePlayer({ style: id, transition }: { style?: StyleId; transition?: TransitionId }) {
+export function SamplePlayer({ style: id, transition, slow = 1 }: { style?: StyleId; transition?: TransitionId; slow?: number }) {
   const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   const wpm = useStore(library, (s) => s.settings.wpm);
   const savedStyle = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
@@ -120,12 +120,12 @@ export function SamplePlayer({ style: id, transition }: { style?: StyleId; trans
     const start = starts[index];
     const end = starts[index + 1] ?? SAMPLE.length;
     const last = index >= starts.length - 1;
-    const delay = frameDurationMs(SAMPLE, start, end, SAMPLE_ENDS, style, wpm, rampFactor(index, style)) + (last ? LOOP_PAUSE_MS : 0);
+    const delay = frameDurationMs(SAMPLE, start, end, SAMPLE_ENDS, style, wpm, rampFactor(index, style)) * slow + (last ? LOOP_PAUSE_MS : 0);
     const timer = setTimeout(() => setIndex(last ? 0 : index + 1), delay);
     return () => clearTimeout(timer);
-  }, [index, starts, style, wpm]);
+  }, [index, starts, style, wpm, slow]);
 
   const start = starts[Math.min(index, starts.length - 1)];
   const end = starts[index + 1] ?? SAMPLE.length;
-  return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} intensity={intensity} wpm={wpm} />;
+  return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} intensity={intensity} wpm={wpm} slow={slow} />;
 }

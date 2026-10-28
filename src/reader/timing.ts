@@ -198,6 +198,23 @@ export function frameDurationMs(
   wpm: number,
   ramp = 1,
 ): number {
+  const { readMs, pauseMs } = frameTiming(words, start, end, paraEnds, style, wpm, ramp);
+  return readMs + pauseMs;
+}
+
+/**
+ * A frame's time split in two: reading its words, then the pause after it. Guided reading sweeps across
+ * the words in the first part and holds still in the second.
+ */
+export function frameTiming(
+  words: string[],
+  start: number,
+  end: number,
+  paraEnds: Set<number>,
+  style: ReadingStyle,
+  wpm: number,
+  ramp = 1,
+): { readMs: number; pauseMs: number } {
   const base = 60000 / wpm;
   const inPhrase = end - start > 1;
   let weight = 0;
@@ -214,7 +231,7 @@ export function frameDurationMs(
   } else if (endsWithClause(words[last])) {
     pause = Math.max(style.pauses.clause * base, style.pauseFloorMs.clause);
   }
-  return (weight * base + pause) * ramp;
+  return { readMs: weight * base * ramp, pauseMs: pause * ramp };
 }
 
 /** Index into `starts` of the frame containing `word`. */

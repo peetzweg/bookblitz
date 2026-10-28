@@ -1,6 +1,7 @@
 import { openDB, type DBSchema } from "idb";
 import type { StyleId } from "../reader/timing";
 import type { Intensity, TransitionId } from "../ui/transitions";
+import type { GuideId } from "../ui/guides";
 
 interface ChapterMeta {
   title: string;
@@ -59,6 +60,12 @@ export interface Settings {
   transition?: TransitionId;
   /** How strong the experimental transition is. Unset means "noticeable". */
   transitionIntensity?: Intensity;
+  /** Experimental: text on the page with a guide pacing the eye (see ui/guides.ts). Unset means flashing words. */
+  guide?: GuideId;
+  /** Guided reading: colour lines with alternating gradients (BeeLine). */
+  guideGradient?: boolean;
+  /** Guided reading: embolden the first half of each word (Bionic Reading). */
+  guideBold?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

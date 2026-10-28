@@ -5,8 +5,8 @@ import { setEstimateWeight } from "./rsvp";
 import {
   buildFrames,
   DEFAULT_STYLE,
-  frameDurationMs,
   frameIndexOf,
+  frameTiming,
   paragraphEnds,
   rampFactor,
   startsSentence,
@@ -55,6 +55,22 @@ let frame: number | undefined;
 let lastFrame = 0;
 /** How far through the current frame's display time we are, from 0 to 1. */
 let frameProgress = 0;
+/**
+ * The current frame's time in three parts, for guided reading: a hold for the eye to sweep back at the
+ * start of a line, reading its words, and the pause after.
+ */
+let timing = { holdMs: 0, readMs: 1, pauseMs: 0 };
+/** Set by guided reading: whether a word starts a line on screen. */
+let startsLine: ((word: number) => boolean) | null = null;
+
+export function setLineStartTest(test: ((word: number) => boolean) | null) {
+  startsLine = test;
+}
+
+/** Time for the eye's return sweep to the start of the next line (research brief, guided-reading.md). */
+export function lineReturnMs(wpm: number) {
+  return Math.max((0.35 * 60000) / wpm, 120);
+}
 /** Frames shown since play was pressed, for the ramp-up. */
 let framesInRun = 0;
 let lastSave = 0;
@@ -185,9 +201,13 @@ function tick(now: number) {
     const style = currentStyle();
     const words = state.content[state.chapter].words;
     // Pauses, length bonuses and the ramp-up only make sense reading forwards; backwards is a scan.
-    const duration = forward
-      ? frameDurationMs(words, state.word, state.frameEnd, paraEnds, style, rate, rampFactor(framesInRun, style))
-      : ((state.frameEnd - state.word) * 60000) / -rate;
+    timing = forward
+      ? {
+          holdMs: startsLine?.(state.word) ? lineReturnMs(rate) : 0,
+          ...frameTiming(words, state.word, state.frameEnd, paraEnds, style, rate, rampFactor(framesInRun, style)),
+        }
+      : { holdMs: 0, readMs: ((state.frameEnd - state.word) * 60000) / -rate, pauseMs: 0 };
+    const duration = timing.holdMs + timing.readMs + timing.pauseMs;
     frameProgress += dt / duration;
     if (frameProgress >= 1) {
       frameProgress = Math.min(frameProgress - 1, 0.5);
@@ -196,6 +216,17 @@ function tick(now: number) {
     }
   }
   frame = requestAnimationFrame(tick);
+}
+
+/**
+ * How far the eye should be through the words on screen, from 0 to 1: it waits at the start of a new
+ * line, moves across the words while they're being read, and rests at the end during the pause after. Read every animation frame by guided reading.
+ */
+export function readingProgress(): number {
+  if (!reader.get().playing) return 0;
+  const total = timing.holdMs + timing.readMs + timing.pauseMs;
+  const elapsed = frameProgress * total - timing.holdMs;
+  return Math.min(1, Math.max(0, elapsed / Math.max(timing.readMs, 1)));
 }
 
 function step(forward: boolean) {

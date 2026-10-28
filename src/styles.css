@@ -2083,6 +2083,32 @@ ol {
   -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
 
+/* Top right of the sticky preview, so it stays in reach while scrolling the options. */
+.lab-slowmo {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--sheet-fg-2);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.lab-slowmo.on {
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.lab-note {
+  max-width: 460px;
+  font-size: 13px;
+  color: var(--sheet-fg-2);
+  text-align: center;
+}
+
 .lab-group {
   width: 100%;
   max-width: 460px;
@@ -2351,4 +2377,164 @@ ol {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+/* ---------- Guided reading (experimental; see ui/GuidedText.tsx) ---------- */
+
+/* The text fills the reading overlay between the header area and the hint. */
+.guided-overlay .reading-word {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 640px;
+  padding: calc(var(--safe-top) + 56px) 28px calc(var(--safe-bottom) + 64px);
+}
+
+.guided-overlay .speed-hud {
+  bottom: auto;
+  top: calc(var(--safe-top) + 14px);
+  z-index: 3;
+}
+
+.guided {
+  --bee-blue: #2563c9;
+  --bee-red: #c03a28;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .guided {
+    --bee-blue: #82b1ff;
+    --bee-red: #ff8f7d;
+  }
+}
+
+/* Moved with a transform to keep the line being read on the eye line. */
+.guided-text {
+  position: relative;
+  isolation: isolate;
+  font-size: clamp(18px, 5vw, 22px);
+  line-height: 1.65;
+  color: rgb(var(--ink) / 0.92);
+  text-wrap: pretty;
+  will-change: transform;
+}
+
+.guided-text p {
+  margin-bottom: 0.75em;
+}
+
+.guided-text b {
+  font-weight: 700;
+}
+
+.gw {
+  transition: opacity 300ms var(--ease-out);
+}
+
+/* Cover: what you've read fades away behind you. */
+.gw-read {
+  opacity: 0.12;
+  transition-duration: 600ms;
+}
+
+/* Line focus and Sentence: everything outside the window steps back, but stays legible. */
+.gw-off {
+  opacity: 0.32;
+}
+
+.guided-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.guide-flash .guided-mark,
+.guide-sentence .guided-mark,
+.guide-cover .guided-mark,
+.guide-scroll .guided-mark {
+  display: none;
+}
+
+.guide-highlight .guided-mark {
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--focus) 38%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--focus) 38%, transparent);
+}
+
+.guide-hops .guided-mark {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--focus) 20%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in oklab, var(--focus) 20%, transparent);
+}
+
+.guide-focus .guided-mark {
+  border-radius: 8px;
+  background: rgb(var(--ink) / 0.06);
+  box-shadow: 0 0 0 6px rgb(var(--ink) / 0.06);
+}
+
+/* Pacer: a short bar under the line, centred on the reading point, like a fingertip. */
+.guide-pacer .guided-mark {
+  z-index: 1;
+}
+
+.guide-pacer .guided-mark::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -2px;
+  width: 2.2em;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--focus);
+  transform: translateX(-50%);
+}
+
+/* Scroll: fixed ticks either side mark the line to read; the text rolls past them. */
+.guide-scroll .guided-text {
+  padding: 0 14px;
+}
+
+.guided-eyeline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.guided-eyeline::before,
+.guided-eyeline::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--focus);
+}
+
+.guided-eyeline::before {
+  left: 0;
+}
+
+.guided-eyeline::after {
+  right: 0;
+}
+
+/* The settings preview: a few lines of the sample. */
+.guide-preview .guided {
+  height: 168px;
+}
+
+.guide-preview .guided-text {
+  font-size: 17px;
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { applyUpdate, checkForUpdate, isIosSafari, promptInstall, usePwa, type UpdateStatus } from "../pwa";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { closeBook, reader, setWpm } from "../reader/reader";
@@ -9,6 +10,8 @@ import { goBack } from "./router";
 import { Slider } from "./Slider";
 import { SamplePlayer, StylePicker } from "./StylePicker";
 import { INTENSITIES, TRANSITION_GROUPS, TRANSITIONS } from "./transitions";
+import { GUIDE, GUIDE_ORDER } from "./guides";
+import { GuidedSample } from "./GuidedReading";
 
 declare const __APP_VERSION__: string;
 declare const __COMMIT__: string;
@@ -82,6 +85,15 @@ export function Settings() {
         >
           Show the intro again
         </button>
+      </p>
+
+      <h2 className="settings-heading">Guided reading · Experimental</h2>
+      <section className="settings-group padded lab-section">
+        <GuideLab />
+      </section>
+      <p className="settings-footnote">
+        Instead of flashing words in one place, keep the text on the page and let a guide pace your eyes through it, at your
+        speed and with your reading style's pauses. Try each on a real chapter.
       </p>
 
       <h2 className="settings-heading">Word transitions · Experimental</h2>
@@ -184,15 +196,93 @@ export function Settings() {
   );
 }
 
+/** Guide picker with a live preview; the choice applies to the reader straight away. */
+function GuideLab() {
+  const current = useStore(library, (s) => s.settings.guide ?? "flash");
+  const gradient = useStore(library, (s) => !!s.settings.guideGradient);
+  const bold = useStore(library, (s) => !!s.settings.guideBold);
+  return (
+    <div className="style-picker embedded">
+      <div className="style-preview guide-preview">
+        {current === "flash" ? <SamplePlayer /> : <GuidedSample guide={current} />}
+      </div>
+      <div className="style-options" role="radiogroup" aria-label="Guide">
+        {GUIDE_ORDER.map((id) => (
+          <button
+            key={id}
+            role="radio"
+            aria-checked={current === id}
+            className={`style-option pressable ${current === id ? "selected" : ""}`}
+            onClick={() => updateSettings({ guide: id })}
+          >
+            <span className="style-option-text">
+              <span className="style-option-name">{GUIDE[id].name}</span>
+              <span className="style-option-tagline">{GUIDE[id].description}</span>
+            </span>
+            <span className="style-check">{current === id && <CheckIcon size={16} />}</span>
+          </button>
+        ))}
+      </div>
+      <div className="lab-group">
+        <div className="lab-group-name">On the page, with any guide</div>
+        <div className="style-options">
+          <button
+            role="switch"
+            aria-checked={gradient}
+            className={`style-option pressable ${gradient ? "selected" : ""}`}
+            onClick={() => updateSettings({ guideGradient: !gradient })}
+          >
+            <span className="style-option-text">
+              <span className="style-option-name">Colour gradient</span>
+              <span className="style-option-tagline">
+                Each line fades into a colour that the next line starts with, to carry your eye back to the start (BeeLine)
+              </span>
+            </span>
+            <span className="style-check">{gradient && <CheckIcon size={16} />}</span>
+          </button>
+          <button
+            role="switch"
+            aria-checked={bold}
+            className={`style-option pressable ${bold ? "selected" : ""}`}
+            onClick={() => updateSettings({ guideBold: !bold })}
+          >
+            <span className="style-option-text">
+              <span className="style-option-name">Bold word starts</span>
+              <span className="style-option-tagline">
+                The first half of each word is bold (Bionic Reading). Popular, though studies haven't found it faster
+              </span>
+            </span>
+            <span className="style-check">{bold && <CheckIcon size={16} />}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SLOW_MOTION = 4;
+
 /** Live preview plus the variants; picking one applies it straight away, here and in the reader. */
 function TransitionLab() {
   const current = useStore(library, (s) => s.settings.transition ?? "cut");
   const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
+  // At reading speed most transitions are over in a few frames; slow motion shows what each one does.
+  const [slow, setSlow] = useState(false);
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   return (
     <div className="style-picker embedded">
       <div className="style-preview">
-        <SamplePlayer transition={current} />
+        <SamplePlayer transition={current} slow={slow ? SLOW_MOTION : 1} />
+        <button className={`lab-slowmo ${slow ? "on" : ""}`} aria-pressed={slow} onClick={() => setSlow((v) => !v)}>
+          {slow ? "Slow motion · ¼" : "Slow motion"}
+        </button>
       </div>
+      {reducedMotion && (
+        <p className="lab-note">
+          Reduce Motion is on in your system settings, so only the fading part of each transition plays: no movement and
+          no blur.
+        </p>
+      )}
       <div className="segmented lab-intensity" role="radiogroup" aria-label="Intensity">
         {INTENSITIES.map((level) => (
           <button

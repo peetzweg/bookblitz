@@ -69,6 +69,11 @@ strength you can see. The lab therefore has three intensities:
 | Noticeable (lab default) | 60% of a word, 90–180 ms | ×2 |
 | Strong | 90% of a word, 120–260 ms | ×3 |
 
+On phones they look fainter than on a desktop: Safari draws at 60 fps (a Mac can do 120), Low Power Mode
+throttles further, the preview word is smaller, and iOS's Reduce Motion leaves only the fade. The lab says
+when Reduce Motion is on, uses an ease-out cubic rather than a quint so the change isn't all in the first
+two frames, and has a slow-motion toggle (¼ speed) to see what each variant actually does.
+
 Blur stays at or below 16 px (Emil: keep animated blur under 20 px; Safari repaints filters). Soften is
 the cheapest (opacity only); Echo is the most expensive (blurred layer held 3× as long). Confirm on a
 real phone with a recording before keeping any.

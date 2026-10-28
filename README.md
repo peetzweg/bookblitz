@@ -47,6 +47,9 @@ Playing.
 - **Reading styles timed from research.** Flow (one word, with extra time for long words and sentence
   ends), Phrases (short words ride along with the next one) and Calm. A taste test on first launch helps
   you pick one. The reasoning and sources are in [docs/research/speed-reading.md](docs/research/speed-reading.md).
+- **Guided reading (experimental).** Or keep the text on the page and let a guide pace your eyes through it:
+  a highlight, a pen-like pacer, sentence or line focus, or a teleprompter scroll, all on the same timing.
+  The research is in [docs/research/guided-reading.md](docs/research/guided-reading.md).
 - **A steady focus point.** The recognition letter sits on a fixed mark, so nothing on screen moves
   between words.
 - **Chapters are sessions.** Each chapter opens on a title card and ends on a short celebration, with the
