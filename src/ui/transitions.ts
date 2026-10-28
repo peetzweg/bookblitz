@@ -26,7 +26,9 @@ export type TransitionId =
   | "focus"
   | "smear"
   | "echo"
-  | "trail";
+  | "trail"
+  | "stream"
+  | "glide";
 
 export type Intensity = "subtle" | "noticeable" | "strong";
 
@@ -308,12 +310,29 @@ const VARIANTS: Variant[] = [
       enterDelayMs: 0,
     }),
   },
+  // ---- Fluent: one line of text instead of separate words (ui/Ribbon.tsx draws these) ----
+  {
+    id: "stream",
+    name: "Stream",
+    description: "The words either side stay faintly in view, and each next word slides into the mark: you see it coming",
+    build: () => none,
+  },
+  {
+    id: "glide",
+    name: "Glide",
+    description: "No steps at all: the line glides past the mark at reading speed, like a ticker, and slows for pauses",
+    build: () => none,
+  },
 ];
+
+/** Transitions drawn as a line of text (Ribbon) rather than one word at a time. */
+export const RIBBONS: ReadonlySet<TransitionId> = new Set(["stream", "glide"]);
 
 export const TRANSITIONS = Object.fromEntries(VARIANTS.map((v) => [v.id, v])) as Record<TransitionId, Variant>;
 
 /** For the lab: the variants in groups, one dimension pushed per group. */
 export const TRANSITION_GROUPS: { name: string; ids: TransitionId[] }[] = [
+  { name: "Fluent", ids: ["stream", "glide"] },
   { name: "Fades", ids: ["cut", "soften", "dissolve", "blink"] },
   { name: "Depth", ids: ["depth", "zoom", "recede", "pop"] },
   { name: "Motion", ids: ["drift", "ticker", "rise", "flip"] },
@@ -333,11 +352,16 @@ const LEVELS: Record<Intensity, { share: number; min: number; max: number; amp: 
   strong: { share: 0.9, min: 120, max: 260, amp: 3 },
 };
 
+/** How long a hand-over takes at one intensity and speed: a share of the word's time, within limits. */
+export function slideMs(intensity: Intensity, wpm: number): number {
+  const level = LEVELS[intensity] ?? LEVELS.noticeable;
+  return Math.min(level.max, Math.max(level.min, (60000 / wpm) * level.share));
+}
+
 /** Keyframes and timings for one transition at one intensity and speed. */
 export function transitionFrames(id: TransitionId, intensity: Intensity, wpm: number): TransitionFrames {
   const level = LEVELS[intensity] ?? LEVELS.noticeable;
-  const ms = Math.min(level.max, Math.max(level.min, (60000 / wpm) * level.share));
-  return (TRANSITIONS[id] ?? TRANSITIONS.cut).build(level.amp, ms);
+  return (TRANSITIONS[id] ?? TRANSITIONS.cut).build(level.amp, slideMs(intensity, wpm));
 }
 
 /** Reduced motion keeps only the opacity part: no movement, no blur. */

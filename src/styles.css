@@ -2538,3 +2538,37 @@ ol {
 .guide-preview .guided-text {
   font-size: 17px;
 }
+
+/* ---------- Ribbon: Stream and Glide (see ui/Ribbon.tsx) ---------- */
+
+/* The whole width is the line; words fade towards the edges. */
+.ribbon-row {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 72%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 72%, transparent);
+}
+
+/* Smaller than a lone word, so the neighbours fit and the line doesn't race across the screen. */
+.ribbon-strip {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  margin-top: -0.5em;
+  font-size: 0.78em;
+  line-height: 1;
+  white-space: pre;
+  will-change: transform;
+}
+
+.rw {
+  opacity: var(--rw-dim, 0.3);
+  transition: opacity 120ms var(--ease-out);
+}
+
+.rw.rw-current {
+  opacity: 1;
+}
+
+.rw-current .rw-f {
+  color: var(--focus);
+}

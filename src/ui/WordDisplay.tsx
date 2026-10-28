@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { reader } from "../reader/reader";
+import { reader, readingProgress } from "../reader/reader";
 import { framePivot } from "../reader/rsvp";
 import { library } from "../store/library";
 import { useStore } from "../store/store";
-import { reduceKeyframes, transitionFrames, type Intensity, type TransitionId } from "./transitions";
+import { RibbonView } from "./Ribbon";
+import { reduceKeyframes, RIBBONS, transitionFrames, type Intensity, type TransitionId } from "./transitions";
 
 /** The frame the reader is on: one word, or a short phrase in phrase styles. */
 export function WordDisplay() {
@@ -13,8 +14,18 @@ export function WordDisplay() {
   const transition = useStore(library, (s) => s.settings.transition ?? "cut");
   const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   const wpm = useStore(library, (s) => s.settings.wpm);
+  if (RIBBONS.has(transition)) return <ReaderRibbon mode={transition as "stream" | "glide"} intensity={intensity} wpm={wpm} />;
   // Only animate while reading; a jump while paused should just show the word.
   return <WordView text={text} frameKey={frameKey} transition={playing ? transition : "cut"} intensity={intensity} wpm={wpm} />;
+}
+
+function ReaderRibbon({ mode, intensity, wpm }: { mode: "stream" | "glide"; intensity: Intensity; wpm: number }) {
+  const words = useStore(reader, (s) => s.content?.[s.chapter]?.words);
+  const word = useStore(reader, (s) => s.word);
+  const end = useStore(reader, (s) => s.frameEnd);
+  const playing = useStore(reader, (s) => s.playing);
+  if (!words) return null;
+  return <RibbonView words={words} word={word} end={end} mode={mode} intensity={intensity} wpm={wpm} playing={playing} progress={readingProgress} />;
 }
 
 interface WordViewProps {

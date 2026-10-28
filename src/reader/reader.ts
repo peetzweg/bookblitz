@@ -4,13 +4,12 @@ import { createStore } from "../store/store";
 import { setEstimateWeight } from "./rsvp";
 import {
   buildFrames,
-  DEFAULT_STYLE,
   frameIndexOf,
   frameTiming,
   paragraphEnds,
   rampFactor,
+  readingStyle,
   startsSentence,
-  STYLES,
   type ReadingStyle,
 } from "./timing";
 
@@ -80,7 +79,8 @@ let frameStarts: number[] = [0];
 let styleId = library.get().settings.style;
 
 function currentStyle(): ReadingStyle {
-  return STYLES[library.get().settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
+  const { style, evenRhythm } = library.get().settings;
+  return readingStyle(style, evenRhythm);
 }
 let wakeLock: WakeLockSentinel | undefined;
 
@@ -276,10 +276,12 @@ function indexChapter() {
 
 // Switching styles mid-chapter re-cuts the frames around the current word.
 setEstimateWeight(currentStyle().meanWeight);
+let even = library.get().settings.evenRhythm;
 library.subscribe(() => {
-  const next = library.get().settings.style;
-  if (next === styleId) return;
+  const { style: next, evenRhythm } = library.get().settings;
+  if (next === styleId && evenRhythm === even) return;
   styleId = next;
+  even = evenRhythm;
   setEstimateWeight(currentStyle().meanWeight);
   indexChapter();
 });

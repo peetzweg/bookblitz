@@ -106,6 +106,31 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
 
 export const DEFAULT_STYLE: StyleId = "flow";
 
+/**
+ * Even rhythm: the same style with its differences between words roughly halved, so the beat is
+ * steadier. Long words and commas still get a little extra; sentence and paragraph ends keep most of
+ * their pause, since those are the best-supported part of the timing (§1.1).
+ */
+function evenStyle(style: ReadingStyle): ReadingStyle {
+  const halfway = (n: number) => (n + 1) / 2;
+  return {
+    ...style,
+    perLetter: style.perLetter / 2,
+    maxLengthBonus: style.maxLengthBonus / 2,
+    shortWord: halfway(style.shortWord),
+    digits: style.digits / 2,
+    pauses: { clause: style.pauses.clause / 2, sentence: style.pauses.sentence * 0.75, paragraph: style.pauses.paragraph * 0.85 },
+    pauseFloorMs: { ...style.pauseFloorMs, clause: style.pauseFloorMs.clause / 2 },
+    meanWeight: 1 + (style.meanWeight - 1) * 0.6,
+  };
+}
+
+/** The style to read with, from settings. */
+export function readingStyle(id: StyleId | undefined, even = false): ReadingStyle {
+  const style = STYLES[id ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
+  return even ? evenStyle(style) : style;
+}
+
 const TRAILING_CLOSERS = /["'”’»)\]}*]+$/;
 const bare = (word: string) => word.replace(TRAILING_CLOSERS, "");
 const letters = (word: string) => word.replace(/[^\p{L}\p{N}]/gu, "").length;

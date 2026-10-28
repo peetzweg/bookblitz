@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { buildFrames, DEFAULT_STYLE, frameDurationMs, paragraphEnds, rampFactor, STYLES, type StyleId } from "../reader/timing";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { buildFrames, DEFAULT_STYLE, frameTiming, paragraphEnds, rampFactor, readingStyle, STYLES, type StyleId } from "../reader/timing";
 import { tokenize } from "../epub/parse";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
 import { CheckIcon } from "./icons";
-import type { TransitionId } from "./transitions";
+import { RibbonView } from "./Ribbon";
+import { RIBBONS, type TransitionId } from "./transitions";
 import { WordView } from "./WordDisplay";
 
 /** Public domain (Carroll, 1865); has a long word, a clause, a question and a quote to feel the timing on. */
@@ -106,26 +107,46 @@ export function SamplePlayer({ style: id, transition, slow = 1 }: { style?: Styl
   const wpm = useStore(library, (s) => s.settings.wpm);
   const savedStyle = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const savedTransition = useStore(library, (s) => s.settings.transition ?? "cut");
+  const even = useStore(library, (s) => !!s.settings.evenRhythm);
   id ??= savedStyle;
   transition ??= savedTransition;
-  const style = STYLES[id];
+  const style = useMemo(() => readingStyle(id, even), [id, even]);
   const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
   const [index, setIndex] = useState(0);
+  // For Glide, which moves between frames: when this frame's words started, and how long they take.
+  const clock = useRef({ startedAt: 0, readMs: 1 });
 
   useEffect(() => {
     setIndex(0);
   }, [id]);
 
-  useEffect(() => {
+  // A layout effect, so the clock is set before the new frame is drawn.
+  useLayoutEffect(() => {
     const start = starts[index];
     const end = starts[index + 1] ?? SAMPLE.length;
     const last = index >= starts.length - 1;
-    const delay = frameDurationMs(SAMPLE, start, end, SAMPLE_ENDS, style, wpm, rampFactor(index, style)) * slow + (last ? LOOP_PAUSE_MS : 0);
-    const timer = setTimeout(() => setIndex(last ? 0 : index + 1), delay);
+    const { readMs, pauseMs } = frameTiming(SAMPLE, start, end, SAMPLE_ENDS, style, wpm, rampFactor(index, style));
+    clock.current = { startedAt: performance.now(), readMs: readMs * slow };
+    const timer = setTimeout(() => setIndex(last ? 0 : index + 1), (readMs + pauseMs) * slow + (last ? LOOP_PAUSE_MS : 0));
     return () => clearTimeout(timer);
   }, [index, starts, style, wpm, slow]);
 
   const start = starts[Math.min(index, starts.length - 1)];
   const end = starts[index + 1] ?? SAMPLE.length;
+  if (RIBBONS.has(transition)) {
+    return (
+      <RibbonView
+        words={SAMPLE}
+        word={start}
+        end={end}
+        mode={transition as "stream" | "glide"}
+        intensity={intensity}
+        wpm={wpm}
+        playing
+        slow={slow}
+        progress={() => Math.min(1, (performance.now() - clock.current.startedAt) / clock.current.readMs)}
+      />
+    );
+  }
   return <WordView text={SAMPLE.slice(start, end).join(" ")} frameKey={`${id}:${index}`} transition={transition} intensity={intensity} wpm={wpm} slow={slow} />;
 }

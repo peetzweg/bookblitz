@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { tokenize } from "../epub/parse";
 import { lineReturnMs, reader, readingProgress, setLineStartTest } from "../reader/reader";
-import { buildFrames, DEFAULT_STYLE, frameTiming, paragraphEnds, rampFactor, STYLES } from "../reader/timing";
+import { buildFrames, DEFAULT_STYLE, frameTiming, paragraphEnds, rampFactor, readingStyle } from "../reader/timing";
 import { library } from "../store/library";
 import { useStore } from "../store/store";
 import type { GuideId } from "./guides";
@@ -51,7 +51,8 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
   const styleId = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const gradient = useStore(library, (s) => s.settings.guideGradient);
   const bold = useStore(library, (s) => s.settings.guideBold);
-  const style = STYLES[styleId] ?? STYLES[DEFAULT_STYLE];
+  const even = useStore(library, (s) => !!s.settings.evenRhythm);
+  const style = useMemo(() => readingStyle(styleId, even), [styleId, even]);
   const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
   const [index, setIndex] = useState(0);
   const clock = useRef({ startedAt: 0, holdMs: 0, readMs: 1 });
@@ -60,7 +61,8 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
 
   useEffect(() => setIndex(0), [styleId]);
 
-  useEffect(() => {
+  // A layout effect, so the clock is set before the new frame is drawn.
+  useLayoutEffect(() => {
     const i = Math.min(index, starts.length - 1);
     const end = starts[i + 1] ?? SAMPLE.length;
     const last = i >= starts.length - 1;

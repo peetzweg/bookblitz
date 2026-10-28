@@ -38,6 +38,8 @@ Sixteen, deliberately wide, in four groups that each push one dimension. The exa
 
 | Group | Variant | What it tests |
 | --- | --- | --- |
+| Fluent | Stream | One line of text: neighbours stay faintly in view and each next word slides into the mark |
+| | Glide | The line moves continuously past the mark at reading speed (horizontal smooth scroll) |
 | Fades | Cut | Baseline: instant swap |
 | | Soften | Fade up from partial opacity; old word fades underneath |
 | | Dissolve | Full cross-fade, words overlap (breaks the "no overlap" rule on purpose) |
@@ -54,6 +56,25 @@ Sixteen, deliberately wide, in four groups that each push one dimension. The exa
 | | Smear | Motion blur: old word stretched and streaked away |
 | | Echo | Faint blurred afterimage of the last word |
 | | Trail | Afterimages that stream away, leaving a trail |
+
+## Fluent: against the staccato
+
+Feedback after the first round: flashing words feels staggered, "not fluent in the mind". Two likely
+causes, each with an option to test:
+
+- **Every word appears from nothing.** In normal reading the next word is already seen in the corner of
+  the eye before you look at it (parafoveal preview), and RSVP removes that ([Rayner et al. 2016, PSPI](https://doi.org/10.1177/1529100615623267)).
+  *Stream* keeps the line around the current word faintly visible (opacity by intensity: 0.18 / 0.3 /
+  0.45), so the next word is there before it arrives, and slides it into the mark. *Glide* goes further
+  and never steps: the line moves at reading speed, sweeping from halfway before each word to halfway
+  after it, and rests between words during pauses. Smooth horizontal scrolling did as well as RSVP on
+  comprehension and was preferred to it ([Kang & Muter 1989](https://doi.org/10.1080/01449298908914536)). Both draw the text at 78% size, so neighbours
+  fit and Glide's speed stays readable.
+- **The beat is uneven.** Flow gives long words, short words and commas different times, which is
+  closer to how eyes read but makes the rhythm irregular. Öquist found the same trade-off: adaptive timing
+  helped until "the variations in exposure time were too large" (speed-reading.md §1.1). *Even rhythm*
+  (a toggle, with any style) halves the length bonus, the short-word discount and the clause pause, and
+  keeps most of the sentence and paragraph pauses.
 
 ## Intensity, and Emil Kowalski's frequency gate
 

@@ -268,6 +268,7 @@ function TransitionLab() {
   const intensity = useStore(library, (s) => s.settings.transitionIntensity ?? "noticeable");
   // At reading speed most transitions are over in a few frames; slow motion shows what each one does.
   const [slow, setSlow] = useState(false);
+  const even = useStore(library, (s) => !!s.settings.evenRhythm);
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   return (
     <div className="style-picker embedded">
@@ -297,6 +298,25 @@ function TransitionLab() {
           </button>
         ))}
       </div>
+      <div className="lab-group">
+        <div className="lab-group-name">Rhythm</div>
+        <div className="style-options">
+          <button
+            role="switch"
+            aria-checked={even}
+            className={`style-option pressable ${even ? "selected" : ""}`}
+            onClick={() => updateSettings({ evenRhythm: !even })}
+          >
+            <span className="style-option-text">
+              <span className="style-option-name">Even rhythm</span>
+              <span className="style-option-tagline">
+                A steadier beat: long words and commas get less extra time, so words arrive more evenly. Sentence ends still
+                pause. Works with any transition and style
+              </span>
+            </span>
+            <span className="style-check">{even && <CheckIcon size={16} />}</span>
+          </button>
+        </div>
       {TRANSITION_GROUPS.map((group) => (
         <div key={group.name} className="lab-group">
           <div className="lab-group-name">{group.name}</div>
@@ -319,6 +339,7 @@ function TransitionLab() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

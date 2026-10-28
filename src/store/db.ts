@@ -60,6 +60,8 @@ export interface Settings {
   transition?: TransitionId;
   /** How strong the experimental transition is. Unset means "noticeable". */
   transitionIntensity?: Intensity;
+  /** Experimental: a steadier beat, with the timing differences between words roughly halved. */
+  evenRhythm?: boolean;
   /** Experimental: text on the page with a guide pacing the eye (see ui/guides.ts). Unset means flashing words. */
   guide?: GuideId;
   /** Guided reading: colour lines with alternating gradients (BeeLine). */
