@@ -310,8 +310,8 @@ function TransitionLab() {
             <span className="style-option-text">
               <span className="style-option-name">Even rhythm</span>
               <span className="style-option-tagline">
-                A steadier beat: long words and commas get less extra time, so words arrive more evenly. Sentence ends still
-                pause. Works with any transition and style
+                A steadier beat: short words and commas get closer to an ordinary word, so words arrive more evenly. Long words
+                and sentence ends keep their time. Works with any transition and style
               </span>
             </span>
             <span className="style-check">{even && <CheckIcon size={16} />}</span>

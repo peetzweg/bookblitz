@@ -26,6 +26,8 @@ export interface ReadingStyle {
   perLetter: number;
   /** Cap on the length bonus. */
   maxLengthBonus: number;
+  /** Extra time for each further part of a hyphenated compound ("well-to-do" has two), in word slots. */
+  perPart: number;
   /** Time for a word of 1–3 letters on its own. */
   shortWord: number;
   /** Time for a function word riding along inside a phrase. */
@@ -54,7 +56,8 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     maxChars: 40,
     lengthFrom: 5,
     perLetter: 0.1,
-    maxLengthBonus: 1.2,
+    maxLengthBonus: 1.8,
+    perPart: 0.35,
     shortWord: 0.85,
     functionWord: 0.85,
     digits: 0.4,
@@ -73,7 +76,8 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     maxChars: 16,
     lengthFrom: 5,
     perLetter: 0.1,
-    maxLengthBonus: 1.2,
+    maxLengthBonus: 1.8,
+    perPart: 0.35,
     shortWord: 0.85,
     functionWord: 0.5,
     digits: 0.4,
@@ -92,7 +96,8 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     maxChars: 40,
     lengthFrom: 4,
     perLetter: 0.12,
-    maxLengthBonus: 1.6,
+    maxLengthBonus: 2.2,
+    perPart: 0.45,
     shortWord: 1,
     functionWord: 1,
     digits: 0.6,
@@ -107,21 +112,20 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
 export const DEFAULT_STYLE: StyleId = "flow";
 
 /**
- * Even rhythm: the same style with its differences between words roughly halved, so the beat is
- * steadier. Long words and commas still get a little extra; sentence and paragraph ends keep most of
- * their pause, since those are the best-supported part of the timing (§1.1).
+ * Even rhythm: the same style with the small differences between words smoothed out, so the beat is
+ * steadier: short words and commas get closer to an ordinary word. Long and hyphenated words keep
+ * their extra time, because they genuinely take longer to recognise (§1.1), and sentence and paragraph
+ * ends keep most of their pause.
  */
 function evenStyle(style: ReadingStyle): ReadingStyle {
   const halfway = (n: number) => (n + 1) / 2;
   return {
     ...style,
-    perLetter: style.perLetter / 2,
-    maxLengthBonus: style.maxLengthBonus / 2,
     shortWord: halfway(style.shortWord),
     digits: style.digits / 2,
     pauses: { clause: style.pauses.clause / 2, sentence: style.pauses.sentence * 0.75, paragraph: style.pauses.paragraph * 0.85 },
     pauseFloorMs: { ...style.pauseFloorMs, clause: style.pauseFloorMs.clause / 2 },
-    meanWeight: 1 + (style.meanWeight - 1) * 0.6,
+    meanWeight: 1 + (style.meanWeight - 1) * 0.85,
   };
 }
 
@@ -204,11 +208,19 @@ function wordsInSentenceEndingAt(words: string[], last: number, paraEnds: Set<nu
   return last - i + 1;
 }
 
+/** Parts of a hyphenated compound: "well-to-do" is three, "daisy-chain" two, a plain word one. */
+function parts(word: string) {
+  return bare(word).split(/[-‐‑/]/).filter((part) => letters(part) > 0).length || 1;
+}
+
 function wordWeight(word: string, inPhrase: boolean, style: ReadingStyle) {
   const n = letters(bare(word));
   if (inPhrase && isFunctionWord(word)) return style.functionWord;
   let weight = n <= 3 ? style.shortWord : 1;
   weight += Math.min(Math.max(0, n - style.lengthFrom) * style.perLetter, style.maxLengthBonus);
+  // Each part of a compound is close to a word of its own: jetzt splits such words, Spritz hyphenates
+  // long ones (§1.2). Shown as one, it gets the time of its parts instead.
+  weight += (parts(word) - 1) * style.perPart;
   if (/\p{N}/u.test(word)) weight += style.digits;
   return weight;
 }

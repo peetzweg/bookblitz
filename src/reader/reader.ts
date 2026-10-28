@@ -54,6 +54,9 @@ let frame: number | undefined;
 let lastFrame = 0;
 /** How far through the current frame's display time we are, from 0 to 1. */
 let frameProgress = 0;
+/** Time already spent on the next frame when the last one ended mid display frame. */
+let carryMs = 0;
+const MAX_CARRY_MS = 34;
 /**
  * The current frame's time in three parts, for guided reading: a hold for the eye to sweep back at the
  * start of a line, reading its words, and the pause after.
@@ -120,6 +123,7 @@ export function play() {
   if (chapter === content.length - 1 && word >= content[chapter].words.length - 1) seek(0, 0);
   framesInRun = 0;
   frameProgress = 0;
+  carryMs = 0;
   reader.set({ playing: true, completed: null, askStyle: false });
   acquireWakeLock();
   lastFrame = performance.now();
@@ -151,6 +155,7 @@ export function seek(chapter: number, word: number, save = true) {
   showFrameAt(w);
   framesInRun = 0;
   frameProgress = 0;
+  carryMs = 0;
   if (save) persist();
 }
 
@@ -208,9 +213,14 @@ function tick(now: number) {
         }
       : { holdMs: 0, readMs: ((state.frameEnd - state.word) * 60000) / -rate, pauseMs: 0 };
     const duration = timing.holdMs + timing.readMs + timing.pauseMs;
-    frameProgress += dt / duration;
+    frameProgress += (dt + carryMs) / duration;
+    carryMs = 0;
     if (frameProgress >= 1) {
-      frameProgress = Math.min(frameProgress - 1, 0.5);
+      // Time past the end of this frame carries into the next one in milliseconds, not as a fraction
+      // (a fraction of a long pause can be most of a short word), and never more than a couple of
+      // display frames, so a hiccup can't eat into the next word.
+      carryMs = Math.min((frameProgress - 1) * duration, MAX_CARRY_MS);
+      frameProgress = 0;
       step(forward);
       if (!reader.get().playing) return;
     }

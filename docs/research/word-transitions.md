@@ -73,8 +73,9 @@ causes, each with an option to test:
 - **The beat is uneven.** Flow gives long words, short words and commas different times, which is
   closer to how eyes read but makes the rhythm irregular. Öquist found the same trade-off: adaptive timing
   helped until "the variations in exposure time were too large" (speed-reading.md §1.1). *Even rhythm*
-  (a toggle, with any style) halves the length bonus, the short-word discount and the clause pause, and
-  keeps most of the sentence and paragraph pauses.
+  (a toggle, with any style) halves the short-word discount, the number bonus and the clause pause, and
+  keeps most of the sentence and paragraph pauses. Long and hyphenated words keep their full extra time:
+  rushing those is the one unevenness that costs reading.
 
 ## Intensity, and Emil Kowalski's frequency gate
 

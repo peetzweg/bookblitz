@@ -171,11 +171,21 @@ bookblitz already does the important ones: sentence and clause pauses, back by s
 
 ### 5.1 Common rules (all flavours)
 
+**Revised 2026-10-28** after reading on a phone: long and hyphenated words still flashed by too quickly.
+The length cap was 1.2 (so everything from 17 letters up got the same ×2.2), and a hyphenated word was
+timed as one word, though "well-to-do" is three (jetzt splits such words; Spritz hyphenates long ones,
+§1.2). The cap is now 1.8 (2.2 for Calm), and each further part of a compound adds `perPart`. At 350 wpm:
+"daisy-chain" 257 → 317 ms, "well-to-do" 223 → 343 ms, "self-consciousness" 377 → 437 ms. Even rhythm no
+longer shortens long words, only short words, numbers and commas. The reader's clock also stopped
+carrying the overshoot of one frame into the next as a fraction (a fraction of a long pause could be
+most of a short word); it now carries at most 34 ms.
+
 ```
 base         = 60000 / wpm                                   // ms
 n            = letters + digits in the word (no punctuation)
 wordWeight   = (n <= 3 ? shortWord : 1)
              + min(max(0, n - lengthFrom) * perLetter, maxLengthBonus)
+             + (parts - 1) * perPart                         // parts of a hyphenated compound
              + (hasDigit ? digits : 0)
 frameWeight  = Σ wordWeight over the frame (function words inside a multi-word frame use functionWord)
              , at least minFrameWeight
@@ -203,7 +213,8 @@ pauseMs      = max(pause * base, pauseFloorMs[kind]) * ramp  // show blank or di
 | maxWords / maxChars | 1 / 40 | 3 / 16 | 1 / 40 |
 | chunk rule | — | leading function words + **one** content word; never cross `, ; : . ! ?` or a paragraph end; number + next word ("9 feet") if ≤ maxChars | — |
 | shortWord (≤3 letters) | 0.85 | 0.85 alone; **functionWord 0.5** inside a phrase | 1.0 |
-| lengthFrom / perLetter / maxLengthBonus | **5 / 0.10 / 1.2** | 5 / 0.10 / 1.2 | **4 / 0.12 / 1.6** |
+| lengthFrom / perLetter / maxLengthBonus | **5 / 0.10 / 1.8** | 5 / 0.10 / 1.8 | **4 / 0.12 / 2.2** |
+| perPart (each further part of a hyphenated word) | 0.35 | 0.35 | 0.45 |
 | digits | 0.4 | 0.4 | 0.6 |
 | minFrameWeight | — | 1.0 | — |
 | clausePause / sentencePause / paragraphPause (added, × base) | **0.6 / 1.5 / 2.5** | 0.6 / 1.5 / 2.5 | **1.0 / 2.2 / 3.5** |
