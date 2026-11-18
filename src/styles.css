@@ -422,8 +422,11 @@ ol {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-padding-inline: var(--gutter);
-  margin: 0 calc(var(--gutter) * -1);
-  padding: 0 var(--gutter) 6px;
+  /* A scroller clips whatever spills out of its padding box, shadows included: pad it out wide enough
+     for the cards' shadow, and pull the margin back in by the same amount so the layout doesn't move. */
+  margin: calc(var(--shadow-room) * -0.5) calc(var(--gutter) * -1) calc(var(--shadow-room) * -1 + 6px);
+  padding: calc(var(--shadow-room) * 0.5) var(--gutter) var(--shadow-room);
+  --shadow-room: 32px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
 }
@@ -550,8 +553,10 @@ ol {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-padding-inline: var(--gutter);
-  margin: 0 calc(var(--gutter) * -1);
-  padding: 0 var(--gutter) 6px;
+  /* Room for the covers' shadows, as in .carousel. */
+  margin: calc(var(--shadow-room) * -0.5) calc(var(--gutter) * -1) calc(var(--shadow-room) * -1 + 6px);
+  padding: calc(var(--shadow-room) * 0.5) var(--gutter) var(--shadow-room);
+  --shadow-room: 24px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
 }
@@ -1861,6 +1866,18 @@ ol {
 .transport-button.main {
   width: 84px;
   height: 84px;
+}
+
+/* Chapter skips sit outside the sentence steps, smaller, so five buttons fit a phone. */
+.transport-button.chapter {
+  width: 48px;
+  height: 48px;
+  color: rgb(var(--ink) / 0.7);
+}
+
+.transport-button:disabled {
+  opacity: 0.25;
+  pointer-events: none;
 }
 
 .transport-button:active {

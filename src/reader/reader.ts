@@ -185,6 +185,20 @@ export function stepSentence(direction: -1 | 1) {
   seek(chapter, i);
 }
 
+/** Chapter start within this many words still counts as "at the start", so back goes one chapter further. */
+const CHAPTER_RESTART_WORDS = 3;
+
+/**
+ * Next (+1) goes to the start of the next chapter. Previous (-1) goes back to the start of this chapter,
+ * or, already there, to the start of the one before, like the back button in a music player.
+ */
+export function stepChapter(direction: -1 | 1) {
+  const { content, chapter, word } = reader.get();
+  if (!content) return;
+  if (direction === 1) return seek(Math.min(chapter + 1, content.length - 1), 0);
+  seek(word > CHAPTER_RESTART_WORDS ? chapter : Math.max(chapter - 1, 0), 0);
+}
+
 export function setWpm(wpm: number) {
   updateSettings({ wpm });
 }

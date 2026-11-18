@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { pause, play, reader, seek, setLiveRate, setOpen, setWpm, stepSentence, toggle } from "../reader/reader";
+import { pause, play, reader, seek, setLiveRate, setOpen, setWpm, stepChapter, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
@@ -10,7 +10,7 @@ import { land, takeOff } from "./coverFlight";
 import { morphWord } from "./wordMorph";
 import { ContextView } from "./ContextView";
 import { FONT_NAMES, FONTS } from "./fonts";
-import { BackIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
+import { BackIcon, ChapterBackIcon, ChapterForwardIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
 import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
@@ -33,6 +33,7 @@ function Sheet() {
   const playing = useStore(reader, (s) => s.playing);
   const completed = useStore(reader, (s) => s.completed);
   const atChapterStart = useStore(reader, (s) => !s.playing && s.word === 0);
+  const atStart = useStore(reader, (s) => s.word === 0);
   const font = useStore(library, (s) => s.settings.font);
   const [showChapters, setShowChapters] = useState(false);
   const [showStyles, setShowStyles] = useState(false);
@@ -207,6 +208,14 @@ function Sheet() {
           <Scrubber />
 
           <div className="transport">
+            <button
+              className="transport-button chapter"
+              onClick={() => stepChapter(-1)}
+              disabled={chapter === 0 && atStart}
+              aria-label="Previous chapter"
+            >
+              <ChapterBackIcon size={24} />
+            </button>
             <button className="transport-button" onClick={() => stepSentence(-1)} aria-label="Previous sentence">
               <BackIcon size={34} />
             </button>
@@ -215,6 +224,14 @@ function Sheet() {
             </button>
             <button className="transport-button" onClick={() => stepSentence(1)} aria-label="Next sentence">
               <ForwardIcon size={34} />
+            </button>
+            <button
+              className="transport-button chapter"
+              onClick={() => stepChapter(1)}
+              disabled={chapter === book.chapters.length - 1}
+              aria-label="Next chapter"
+            >
+              <ChapterForwardIcon size={24} />
             </button>
           </div>
 

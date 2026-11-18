@@ -32,6 +32,17 @@ export const BackIcon = (p: IconProps) => (
 
 export const ForwardIcon = (p: IconProps) => <BackIcon {...p} style={{ transform: "scaleX(-1)", ...p.style }} />;
 
+export const ChapterBackIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="2.6" height="14" rx="1" />
+    <path d="M20 6.2c0-.9-1-1.4-1.7-.9L9.4 11c-.7.5-.7 1.5 0 2l8.9 5.7c.7.5 1.7 0 1.7-.9V6.2Z" />
+  </Icon>
+);
+
+export const ChapterForwardIcon = (p: IconProps) => (
+  <ChapterBackIcon {...p} style={{ transform: "scaleX(-1)", ...p.style }} />
+);
+
 export const PlusIcon = (p: IconProps) => (
   <Icon {...p} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
     <path d="M12 5v14M5 12h14" />
