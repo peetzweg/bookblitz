@@ -85,6 +85,14 @@ export const BookIcon = (p: IconProps) => (
 );
 
 /** Three bars of different lengths: rhythm, for the reading-style button. */
+/** A page of text: the paragraph view. */
+export const TextIcon = (p: IconProps) => (
+  <Icon {...p} fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4.5" y="3" width="15" height="18" rx="2.5" />
+    <path d="M8.5 8h7M8.5 12h7M8.5 16h4" />
+  </Icon>
+);
+
 export const RhythmIcon = (p: IconProps) => (
   <Icon {...p} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
     <path d="M4 7h9M4 12h16M4 17h6" />

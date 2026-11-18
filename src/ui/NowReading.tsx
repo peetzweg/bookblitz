@@ -2,15 +2,15 @@ import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { pause, play, reader, seek, setLiveRate, setOpen, setWpm, stepChapter, stepSentence, toggle } from "../reader/reader";
 import { estimateMs, formatClock, formatDuration } from "../reader/rsvp";
-import { library, updateSettings } from "../store/library";
+import { library } from "../store/library";
 import { useStore } from "../store/store";
 import { ChapterComplete, ChapterIntro } from "./ChapterCards";
 import { Cover } from "./Cover";
 import { land, takeOff } from "./coverFlight";
-import { morphWord } from "./wordMorph";
+import { TypePanel } from "./TypePanel";
 import { ContextView } from "./ContextView";
-import { FONT_NAMES, FONTS } from "./fonts";
-import { BackIcon, ChapterBackIcon, ChapterForwardIcon, CheckIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
+import { FONT_NAMES } from "./fonts";
+import { BackIcon, ChapterBackIcon, ChapterForwardIcon, CheckIcon, TextIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
 import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
@@ -19,6 +19,8 @@ import { GuidedReading } from "./GuidedReading";
 import { haptic } from "./haptics";
 import { MAX_WPM, MIN_WPM } from "../store/db";
 
+
+type Panel = "styles" | "chapters" | "type" | "text";
 
 const SHEET_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
 const DISMISS_DISTANCE = 140;
@@ -37,8 +39,16 @@ function Sheet() {
   const atChapterStart = useStore(reader, (s) => !s.playing && s.word === 0);
   const atStart = useStore(reader, (s) => s.word === 0);
   const font = useStore(library, (s) => s.settings.font);
-  const [showChapters, setShowChapters] = useState(false);
-  const [showStyles, setShowStyles] = useState(false);
+  const textSize = useStore(library, (s) => s.settings.textSize ?? 1);
+  /** What the main area shows instead of the reading view, if anything. */
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const showChapters = panel === "chapters";
+  const showStyles = panel === "styles";
+  /** Opens a panel, or closes it if it's already open. Reading pauses for it. */
+  const togglePanel = (next: Panel) => {
+    pause();
+    setPanel((p) => (p === next ? null : next));
+  };
   const askStyle = useStore(reader, (s) => s.askStyle);
   const style = useStore(library, (s) => STYLES[s.settings.style ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE]);
   const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
@@ -59,20 +69,9 @@ function Sheet() {
     land(flightTarget(), offset);
   }, []);
 
-  // Pausing shrinks the word down into its place in the paragraph; playing lifts it back out. Runs after
-  // the paragraph has re-rendered and scrolled (child layout effects run first), so both ends exist.
-  const mounted = useRef(false);
-  useLayoutEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    const sheet = sheetRef.current;
-    // Guided reading already shows the text on the page: nothing to fly.
-    if (guided) return;
-    const s = reader.get();
-    const text = s.content?.[s.chapter]?.words.slice(s.word, s.frameEnd).join(" ") ?? "";
-    if (sheet) morphWord(sheet, text, !playing);
+  // Reading again closes whatever panel was open.
+  useEffect(() => {
+    if (playing) setPanel(null);
   }, [playing]);
 
   const close = () => {
@@ -109,7 +108,10 @@ function Sheet() {
   // Chapter cards are a moment of their own: their Start button is the only control they need.
   const choosing = askStyle || showStyles;
   const onCard = !choosing && !showChapters && (completed !== null || atChapterStart);
-  const sheetMode = choosing ? "choosing-style" : onCard ? "on-card" : "";
+  // Pausing doesn't change the view: the word (or the page) stays exactly where it was and the controls
+  // fade in over it. The paragraph around the word is a panel of its own (Text).
+  const reading = playing || (!choosing && !onCard && panel === null);
+  const sheetMode = `${choosing ? "choosing-style" : onCard ? "on-card" : ""} ${reading ? "reading" : ""} ${playing ? "playing" : ""}`;
 
   return (
     <>
@@ -122,8 +124,8 @@ function Sheet() {
       />
       <motion.section
         ref={sheetRef}
-        className="sheet"
-        style={{ "--tint": book.tint ?? "60 60 70" } as React.CSSProperties}
+        className={`sheet reader-font-${font}`}
+        style={{ "--tint": book.tint ?? "60 60 70", "--text-scale": textSize } as React.CSSProperties}
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
@@ -139,7 +141,7 @@ function Sheet() {
         }}
         aria-label="Now Reading"
       >
-        <div className={`sheet-inner reader-font-${font} ${sheetMode}`}>
+        <div className={`sheet-inner ${sheetMode}`}>
           <header className="sheet-header" onPointerDown={startDrag}>
             <div className="grabber" />
             <div className="sheet-header-row">
@@ -152,8 +154,7 @@ function Sheet() {
                 aria-label="Show chapters"
                 onClick={() => {
                   if (dragged.current) return;
-                  pause();
-                  setShowChapters((v) => !v);
+                  togglePanel("chapters");
                 }}
               >
                 <div className="sheet-chapter">{book.chapters[chapter]?.title}</div>
@@ -169,8 +170,8 @@ function Sheet() {
               key={
                 askStyle || showStyles
                   ? "styles"
-                  : showChapters
-                    ? "chapters"
+                  : panel === "chapters" || panel === "type"
+                    ? panel
                     : completed !== null
                       ? `done-${completed}`
                       : atChapterStart
@@ -186,20 +187,22 @@ function Sheet() {
               {askStyle || showStyles ? (
                 <StylePicker
                   onDone={() => {
-                    setShowStyles(false);
+                    setPanel(null);
                     // Picked on the way into the first read: carry on into it.
                     if (reader.get().askStyle) play();
                   }}
                 />
               ) : showChapters ? (
-                <ChapterPicker onPick={() => setShowChapters(false)} />
+                <ChapterPicker onPick={() => setPanel(null)} />
+              ) : panel === "type" ? (
+                <TypePanel guided={guided} />
               ) : completed !== null ? (
                 <ChapterComplete index={completed} onDone={close} />
               ) : atChapterStart ? (
                 <ChapterIntro />
               ) : (
-                // Paused: the text around the current word, which is highlighted in place of the big
-                // word. Tapping a word jumps there; tapping anywhere else carries on reading.
+                // The Text panel: the paragraph around the current word, highlighted. Tapping a word
+                // jumps there; tapping anywhere else carries on reading. Under the reading view otherwise.
                 <div className="context-wrap" onClick={play}>
                   <ContextView />
                 </div>
@@ -241,39 +244,38 @@ function Sheet() {
 
           <div className="sheet-footer">
             <button
-              className="footer-button font-button"
-              onClick={() => updateSettings({ font: FONTS[(FONTS.indexOf(font) + 1) % FONTS.length] })}
-              aria-label={`Reading font: ${FONT_NAMES[font]}. Tap to change.`}
+              className={`footer-button font-button ${panel === "type" ? "on" : ""}`}
+              onClick={() => togglePanel("type")}
+              aria-label={`Text: ${FONT_NAMES[font]}. Tap to change the font and size.`}
             >
               <span className={`font-${font}`}>Aa</span>
               <span className="font-name">{FONT_NAMES[font] ?? FONT_NAMES.sans}</span>
             </button>
             <button
               className={`footer-button font-button ${showStyles ? "on" : ""}`}
-              onClick={() => {
-                pause();
-                setShowChapters(false);
-                setShowStyles((v) => !v);
-              }}
+              onClick={() => togglePanel("styles")}
               aria-label={`Reading style: ${style.name}. Tap to change.`}
             >
               <RhythmIcon size={20} />
               <span className="font-name">{style.name}</span>
             </button>
             <button
+              className={`icon-button footer-button ${panel === "text" ? "on" : ""}`}
+              onClick={() => togglePanel("text")}
+              aria-label="Show the text around this word"
+            >
+              <TextIcon size={22} />
+            </button>
+            <button
               className={`icon-button footer-button ${showChapters ? "on" : ""}`}
-              onClick={() => {
-                pause();
-                setShowStyles(false);
-                setShowChapters((v) => !v);
-              }}
+              onClick={() => togglePanel("chapters")}
               aria-label="Chapters"
             >
               <ListIcon size={22} />
             </button>
           </div>
         </div>
-        <ReadingOverlay />
+        <ReadingOverlay shown={reading} />
       </motion.section>
     </>
   );
@@ -308,7 +310,7 @@ interface SpeedGesture {
  * and above it is backwards. Letting go keeps a forward speed, stops at 0, and after reading backwards
  * carries on at the speed you had before.
  */
-function ReadingOverlay() {
+function ReadingOverlay({ shown }: { shown: boolean }) {
   const playing = useStore(reader, (s) => s.playing);
   const rate = useStore(reader, (s) => s.rate);
   const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
@@ -337,8 +339,8 @@ function ReadingOverlay() {
 
   return (
     <div
-      className={`reading-overlay ${playing ? "visible" : ""} ${guided ? "guided-overlay" : ""}`}
-      aria-hidden={!playing}
+      className={`reading-overlay ${shown ? "visible" : ""} ${shown && !playing ? "paused" : ""} ${guided ? "guided-overlay" : ""}`}
+      aria-hidden={!shown}
       onPointerDown={(e) => {
         suppressClick.current = false;
         if (!reader.get().playing) return;
@@ -367,7 +369,7 @@ function ReadingOverlay() {
       onPointerUp={end}
       onPointerCancel={end}
       onClick={() => {
-        if (!suppressClick.current) pause();
+        if (!suppressClick.current) toggle();
       }}
     >
       <div className="reading-word">{guided ? <GuidedReading /> : <WordDisplay />}</div>
