@@ -1493,7 +1493,15 @@ ol {
   gap: 14px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 0 8px;
+  /* A scroller clips at its padding: leave room below for the start button's shadow, and pull the
+     margin back in by as much so the speed control stays where it was. */
+  padding: 4px 0 32px;
+  margin-bottom: -24px;
+}
+
+/* It scrolls when there isn't room, rather than squashing what's in it. */
+.style-picker > * {
+  flex-shrink: 0;
 }
 
 .style-preview {
@@ -2191,6 +2199,7 @@ ol {
   flex: none;
   overflow: visible;
   padding: 0;
+  margin-bottom: 0;
 }
 
 .style-picker.embedded .style-preview {

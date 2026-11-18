@@ -23,17 +23,14 @@ const ORDER: StyleId[] = ["flow", "phrases", "calm"];
  * difference instead of reading about it. Shown before the first read, and from the reader's footer.
  */
 export function StylePicker({ onDone, embedded = false }: { onDone?: (style: StyleId) => void; embedded?: boolean }) {
-  const current = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
+  const selected = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const firstTime = useStore(library, (s) => !s.settings.styleChosen);
-  const [selected, setSelected] = useState<StyleId>(current);
 
+  // Tapping a style switches to it there and then, so leaving the picker any way keeps the choice.
   // The first time through, each style plays at its suggested speed; afterwards your own speed is kept.
-  const select = (id: StyleId) => {
-    setSelected(id);
-    if (firstTime) updateSettings({ wpm: STYLES[id].defaultWpm });
-  };
+  const select = (id: StyleId) => updateSettings({ style: id, ...(firstTime && { wpm: STYLES[id].defaultWpm }) });
   useEffect(() => {
-    if (firstTime) updateSettings({ wpm: STYLES[current].defaultWpm });
+    if (firstTime) updateSettings({ wpm: STYLES[selected].defaultWpm });
   }, []);
 
   return (
@@ -72,22 +69,11 @@ export function StylePicker({ onDone, embedded = false }: { onDone?: (style: Sty
           );
         })}
       </div>
-      {embedded ? (
-        <button
-          className="pill-button filled"
-          disabled={selected === current}
-          onClick={() => {
-            updateSettings({ style: selected, styleChosen: true });
-            onDone?.(selected);
-          }}
-        >
-          {selected === current ? `Reading with ${STYLES[selected].name}` : `Use ${STYLES[selected].name}`}
-        </button>
-      ) : (
+      {!embedded && (
         <button
           className="start-button"
           onClick={() => {
-            updateSettings({ style: selected, styleChosen: true });
+            updateSettings({ styleChosen: true });
             onDone?.(selected);
           }}
         >
