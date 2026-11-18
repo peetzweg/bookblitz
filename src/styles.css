@@ -1863,9 +1863,13 @@ ol {
   border-top: 1.5px dashed rgb(var(--ink) / 0.45);
 }
 
-.speed-line.zero span {
-  right: auto;
+/* Both labels sit on the side away from the finger. */
+.labels-left .speed-line span {
   left: 16px;
+  right: auto;
+}
+
+.speed-line.zero span {
   background: var(--paper);
   color: rgb(var(--ink) / 0.75);
   box-shadow: 0 0 0 1px rgb(var(--ink) / 0.2), 0 2px 8px rgb(0 0 0 / 0.12);

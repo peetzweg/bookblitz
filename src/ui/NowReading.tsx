@@ -310,6 +310,8 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
   const suppressClick = useRef(false);
   const [hint, setHint] = useState(false);
   const [scale, setScale] = useState(0);
+  /** The labels go on the side away from the finger, so it doesn't cover them. */
+  const [labelSide, setLabelSide] = useState<"left" | "right">("right");
 
   // Once each time the reader opens: by the second time you start reading, you know.
   const hinted = useRef(false);
@@ -355,6 +357,8 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
         const scale = (e.currentTarget.clientHeight / 2 - EDGE_PX) / MAX_WPM;
         gesture.current = { y: e.clientY, base, rate: base, moved: false, scale };
         setScale(scale);
+        const box = e.currentTarget.getBoundingClientRect();
+        setLabelSide(e.clientX - box.left > box.width / 2 ? "left" : "right");
         setHint(false);
       }}
       onPointerMove={(e) => {
@@ -379,7 +383,7 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
       }}
     >
       <div className="reading-word">{guided ? <GuidedReading /> : <WordDisplay />}</div>
-      <SpeedLines rate={rate} scale={scale} />
+      <SpeedLines rate={rate} scale={scale} side={labelSide} />
       <div className={`reading-hint ${hint ? "shown" : ""}`}>
         {holdToRead ? "Let go to pause" : "Tap to pause"} · drag ↓ faster, ↑ slower and back
       </div>
@@ -389,7 +393,7 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
 }
 
 /** The speed gesture on screen: a fixed line at 0 wpm across the middle, and the speed you're dragging. */
-function SpeedLines({ rate, scale }: { rate: number | null; scale: number }) {
+function SpeedLines({ rate, scale, side }: { rate: number | null; scale: number; side: "left" | "right" }) {
   const shown = rate !== null;
   // Keep the last position while fading out, rather than jumping back to the middle.
   const last = useRef(0);
@@ -397,7 +401,7 @@ function SpeedLines({ rate, scale }: { rate: number | null; scale: number }) {
   const r = last.current;
   const label = r === 0 ? "Stop" : r > 0 ? `${r} wpm` : `${-r} wpm back`;
   return (
-    <div className={`speed-lines ${shown ? "shown" : ""}`} aria-hidden>
+    <div className={`speed-lines labels-${side} ${shown ? "shown" : ""}`} aria-hidden>
       <div className="speed-line zero">
         <span>0</span>
       </div>
