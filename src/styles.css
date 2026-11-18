@@ -2416,6 +2416,105 @@ ol {
   }
 }
 
+/* ---------- Landscape phones ---------- */
+
+/* Too short to stack text and controls: the text takes the left, the controls a column on the right. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .sheet {
+    top: 0;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .sheet-inner {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    /* Header; then the controls, centred between two flexible rows. */
+    grid-template-rows: auto 1fr repeat(4, auto) 1fr;
+    column-gap: 40px;
+    padding: 0 max(24px, env(safe-area-inset-right)) calc(var(--safe-bottom) + 8px) max(24px, env(safe-area-inset-left));
+  }
+
+  .sheet-header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .sheet-main {
+    grid-column: 1;
+    grid-row: 2 / -1;
+  }
+
+  /* Chapter cards have no controls beside them: the card takes the width, the footer goes below. */
+  .sheet-inner.on-card {
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .on-card .sheet-main {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .on-card .sheet-footer {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* The chapter intro sits side by side: cover on the left, title and Start on the right. */
+  .chapter-card.intro {
+    display: grid;
+    grid-template-columns: auto minmax(0, 440px);
+    justify-content: center;
+    align-content: center;
+    justify-items: start;
+    column-gap: 32px;
+    row-gap: 8px;
+    text-align: left;
+  }
+
+  .chapter-card.intro > * {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .chapter-card.intro .card-cover {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    align-self: center;
+    width: 112px;
+  }
+
+  .chapter-card.intro .card-title {
+    font-size: 30px;
+  }
+
+  .chapter-card.intro .start-button {
+    margin-top: 8px;
+  }
+
+  .scrubber {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .transport {
+    grid-column: 2;
+    grid-row: 4;
+    margin: 6px 0 2px;
+  }
+
+  .speed {
+    grid-column: 2;
+    grid-row: 5;
+  }
+
+  .sheet-footer {
+    grid-column: 2;
+    grid-row: 6;
+  }
+}
+
 /* ---------- Accessibility ---------- */
 
 @media (prefers-reduced-motion: reduce) {

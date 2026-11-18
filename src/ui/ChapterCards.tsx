@@ -16,7 +16,7 @@ export function ChapterIntro() {
   const chapter = book.chapters[index];
 
   return (
-    <div className="chapter-card">
+    <div className="chapter-card intro">
       <Cover book={book} className="card-cover" flightTarget="hero" />
       <motion.div className="card-kicker" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={RISE}>
         Chapter {index + 1} of {book.chapters.length}

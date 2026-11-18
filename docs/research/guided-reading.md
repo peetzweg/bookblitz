@@ -110,6 +110,12 @@ owner can feel the differences before cutting down. All guides share the reader'
 Calm timing, punctuation pauses, and a line-return hold of max(0.35 × word slot, 120 ms) at the start of
 each line (§3.1).
 
+Every guide scrolls the same way: the line being read rises from the reading line as it's read, so the
+next line is in place by its last word, and the text eases after that target with a 260 ms lag. That
+irons out the steps between words and the punctuation pauses. Stepping a whole line at a time, the first
+version, made the page jump every couple of seconds, which felt busy (Kang & Muter: smooth beats
+stepped). The guide itself still moves word by word.
+
 | In the app | From this brief |
 | --- | --- |
 | Highlight | Phrase hop (word by word with Flow and Calm, phrase by phrase with Phrases) |

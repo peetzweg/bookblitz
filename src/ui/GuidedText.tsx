@@ -5,8 +5,11 @@ import { boldLength, CONTINUOUS, type GuideId } from "./guides";
 /** Words kept rendered before and after the current one; the window moves on in paragraph steps. */
 const WORDS_BEFORE = 150;
 const WORDS_AFTER = 500;
-/** How long the text takes to slide up to the next line, for guides that step a line at a time. */
-const LINE_MS = 380;
+/**
+ * How quickly the text catches up with where reading is, in ms: long enough to iron out the steps between
+ * words and the pauses, short enough that the line being read never drifts far from the eye line.
+ */
+const SCROLL_LAG_MS = 260;
 const EASE_OUT = "cubic-bezier(0.33, 1, 0.68, 1)";
 
 interface Props {
@@ -64,9 +67,12 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
   const mark = useRef<HTMLDivElement>(null);
   const layout = useRef<Layout | null>(null);
   const placed = useRef({ line: -1, read: -1, sentence: -1 });
+  /** Where the text is scrolled to, and where reading says it should be. */
+  const scroll = useRef({ y: 0, target: 0 });
+  const reduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const paraEnds = useMemo(() => paragraphEnds(paras, words.length), [paras, words]);
-  const latest = useRef({ words, paraEnds, word, end, guide, progress, eyeLine });
-  latest.current = { words, paraEnds, word, end, guide, progress, eyeLine };
+  const latest = useRef({ words, paraEnds, word, end, guide, progress, eyeLine, playing });
+  latest.current = { words, paraEnds, word, end, guide, progress, eyeLine, playing };
 
   const text = useMemo(() => {
     const blocks = [];
@@ -96,7 +102,13 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
     return blocks;
   }, [words, paras, win.first, win.last, bold]);
 
-  /** Moves the scroll and the guide to where reading is. `smooth` lets them glide, else they jump. */
+  /** Puts the text where it should be now, without easing towards it. */
+  const snapScroll = () => {
+    scroll.current.y = scroll.current.target;
+    if (inner.current) inner.current.style.transform = `translateY(${scroll.current.y}px)`;
+  };
+
+  /** Moves the scroll and the guide to where reading is. `smooth` lets the guide glide, else it jumps. */
   const place = (smooth: boolean) => {
     const L = layout.current;
     const box = viewport.current;
@@ -110,18 +122,16 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
     const newLine = lineIndex !== placed.current.line;
     placed.current.line = lineIndex;
     const continuous = CONTINUOUS.has(guide);
-    const point = continuous ? pointAt(L, k, kEnd, words, progress()) : null;
+    const fraction = progress();
+    const point = continuous ? pointAt(L, k, kEnd, words, fraction) : null;
 
-    // The scroll: the line being read sits on the eye line. Scroll rolls on continuously within a line.
+    // The scroll rolls on continuously: the line being read rises from the eye line as it's read, so that
+    // by its last word the next line is there. The animation loop eases the text towards this.
     let centre = line.top + line.height / 2;
-    if (guide === "scroll" && point) {
-      const next = L.lines[lineIndex + 1];
-      const along = clamp((point.x - line.left) / Math.max(line.right - line.left, 1), 0, 1);
-      if (next) centre += (next.top + next.height / 2 - centre) * along;
-    }
-    const y = box.clientHeight * eyeLine - centre;
-    content.style.transition = smooth && newLine && !continuous ? `transform ${LINE_MS}ms ${EASE_OUT}` : "none";
-    content.style.transform = `translateY(${y}px)`;
+    const next = L.lines[lineIndex + 1];
+    if (next && !reduced) centre += (next.top + next.height / 2 - centre) * lineRead(L, k, kEnd, words, fraction);
+    scroll.current.target = box.clientHeight * eyeLine - centre;
+    if (!smooth || !latest.current.playing || reduced) snapScroll();
 
     const m = mark.current;
     if (m) {
@@ -204,11 +214,17 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
   // Every new frame.
   useLayoutEffect(() => place(true), [word, end, eyeLine]);
 
-  // Continuous guides move every animation frame while reading.
+  // While reading, the text glides every animation frame, and continuous guides move with it.
   useEffect(() => {
-    if (!playing || !CONTINUOUS.has(guide)) return;
-    let frame = requestAnimationFrame(function tick() {
-      place(false);
+    if (!playing || reduced) return;
+    let last = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      const dt = Math.min(now - last, 100);
+      last = now;
+      place(true);
+      const s = scroll.current;
+      s.y += (s.target - s.y) * (1 - Math.exp(-dt / SCROLL_LAG_MS));
+      if (inner.current) inner.current.style.transform = `translateY(${s.y}px)`;
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
@@ -230,6 +246,25 @@ function setBox(el: HTMLElement, left: number, top: number, width: number, heigh
   el.style.transform = `translate(${left}px, ${top}px)`;
   el.style.width = `${width}px`;
   el.style.height = `${height}px`;
+}
+
+/**
+ * How much of the line that word k is on has been read, 0–1, counting letters, with `fraction` of the
+ * frame k…kEnd done. Counting letters rather than measuring width means a short last line still ends at 1.
+ */
+function lineRead(L: Layout, k: number, kEnd: number, words: string[], fraction: number) {
+  const line = L.lineOf[k];
+  let start = k;
+  while (start > 0 && L.lineOf[start - 1] === line) start--;
+  let total = 0;
+  let done = 0;
+  for (let i = start; i < L.spans.length && L.lineOf[i] === line; i++) {
+    const size = words[L.first + i].length + 1;
+    total += size;
+    if (i < k) done += size;
+    else if (i < kEnd) done += size * fraction;
+  }
+  return clamp(done / Math.max(total, 1), 0, 1);
 }
 
 /**
