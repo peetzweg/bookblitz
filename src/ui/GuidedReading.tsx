@@ -58,7 +58,8 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
   const bold = useStore(library, (s) => s.settings.guideBold);
   const justify = useStore(library, (s) => s.settings.guideJustify);
   const even = useStore(library, (s) => !!s.settings.evenRhythm);
-  const style = useMemo(() => readingStyle(styleId, even), [styleId, even]);
+  // The preview is a guide, so it reads with guided timing even while the reader is set to flash words.
+  const style = useMemo(() => readingStyle(styleId, even, true), [styleId, even]);
   const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
   const [index, setIndex] = useState(0);
   const clock = useRef({ startedAt: 0, holdMs: 0, readMs: 1 });

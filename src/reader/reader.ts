@@ -99,9 +99,11 @@ let frameStarts: number[] = [0];
 let styleId = library.get().settings.style;
 
 function currentStyle(): ReadingStyle {
-  const { style, evenRhythm } = library.get().settings;
-  return readingStyle(style, evenRhythm);
+  const { style, evenRhythm, guide } = library.get().settings;
+  return readingStyle(style, evenRhythm, isGuided(guide));
 }
+
+const isGuided = (guide: string | undefined) => !!guide && guide !== "flash";
 let wakeLock: WakeLockSentinel | undefined;
 
 /** Opening the book you're in again after this long counts as coming back to it, not a pause. */
@@ -352,11 +354,13 @@ function indexChapter() {
 // Switching styles mid-chapter re-cuts the frames around the current word.
 setEstimateWeight(currentStyle().meanWeight);
 let even = library.get().settings.evenRhythm;
+let guided = isGuided(library.get().settings.guide);
 library.subscribe(() => {
-  const { style: next, evenRhythm } = library.get().settings;
-  if (next === styleId && evenRhythm === even) return;
+  const { style: next, evenRhythm, guide } = library.get().settings;
+  if (next === styleId && evenRhythm === even && isGuided(guide) === guided) return;
   styleId = next;
   even = evenRhythm;
+  guided = isGuided(guide);
   setEstimateWeight(currentStyle().meanWeight);
   indexChapter();
 });

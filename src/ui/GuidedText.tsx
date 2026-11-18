@@ -6,11 +6,15 @@ import { breakLines } from "./justify";
 /** Words kept rendered before and after the current one; the window moves on in paragraph steps. */
 const WORDS_BEFORE = 150;
 const WORDS_AFTER = 500;
-/**
- * How quickly the text catches up with where reading is, in ms: long enough to iron out the steps between
- * words and the pauses, short enough that the line being read never drifts far from the eye line.
+/*
+ * The scroll moves at a steady speed rather than following each word: it runs at the average rate reading
+ * has been moving the text (over FLOW_MS), plus a gentle correction towards where reading actually is
+ * (closing the gap over CATCH_MS), with changes of speed eased over EASE_MS. Pauses and long words then
+ * show as the highlight moving unevenly over a page that glides on regardless.
  */
-const SCROLL_LAG_MS = 260;
+const FLOW_MS = 4000;
+const CATCH_MS = 3000;
+const EASE_MS = 1200;
 const EASE_OUT = "cubic-bezier(0.33, 1, 0.68, 1)";
 
 interface Props {
@@ -71,7 +75,7 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
   const layout = useRef<Layout | null>(null);
   const placed = useRef({ line: -1, read: -1, sentence: -1 });
   /** Where the text is scrolled to, and where reading says it should be. */
-  const scroll = useRef({ y: 0, target: 0 });
+  const scroll = useRef({ y: 0, target: 0, velocity: 0, flow: 0, lastTarget: 0 });
   const reduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const paraEnds = useMemo(() => paragraphEnds(paras, words.length), [paras, words]);
   const latest = useRef({ words, paraEnds, word, end, guide, progress, eyeLine, playing });
@@ -155,7 +159,9 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
 
   /** Puts the text where it should be now, without easing towards it. */
   const snapScroll = () => {
-    scroll.current.y = scroll.current.target;
+    const s = scroll.current;
+    s.y = s.lastTarget = s.target;
+    s.velocity = s.flow = 0;
     if (inner.current) inner.current.style.transform = `translateY(${scroll.current.y}px)`;
   };
 
@@ -275,8 +281,18 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
       last = now;
       place(true);
       const s = scroll.current;
-      s.y += (s.target - s.y) * (1 - Math.exp(-dt / SCROLL_LAG_MS));
-      if (inner.current) inner.current.style.transform = `translateY(${s.y}px)`;
+      const height = viewport.current?.clientHeight ?? 0;
+      // A jump (seeking, reading backwards past a line): go there directly rather than racing across.
+      if (Math.abs(s.target - s.lastTarget) > height / 2 || Math.abs(s.target - s.y) > height / 2) {
+        snapScroll();
+      } else if (dt > 0) {
+        s.flow += ((s.target - s.lastTarget) / dt - s.flow) * (1 - Math.exp(-dt / FLOW_MS));
+        s.lastTarget = s.target;
+        const wanted = s.flow + (s.target - s.y) / CATCH_MS;
+        s.velocity += (wanted - s.velocity) * (1 - Math.exp(-dt / EASE_MS));
+        s.y += s.velocity * dt;
+        if (inner.current) inner.current.style.transform = `translate3d(0, ${s.y}px, 0)`;
+      }
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);

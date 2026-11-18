@@ -132,10 +132,35 @@ function evenStyle(style: ReadingStyle): ReadingStyle {
   };
 }
 
+/** How much of each word's extra (or saved) time guided reading keeps. */
+const GUIDED_SPREAD = 0.35;
+
+/**
+ * Guided reading: the text is on the page, so the eye sees long words coming and reads them as it would
+ * anyway. The guide only has to keep a pace, and a steady one is easier to follow: differences between
+ * short and long words shrink to about a third. Punctuation pauses stay.
+ */
+function guidedStyle(style: ReadingStyle): ReadingStyle {
+  const closer = (n: number) => 1 + (n - 1) * GUIDED_SPREAD;
+  return {
+    ...style,
+    shortWord: closer(style.shortWord),
+    lengthScale: style.lengthScale * GUIDED_SPREAD,
+    maxLengthBonus: style.maxLengthBonus * GUIDED_SPREAD,
+    perPart: style.perPart * GUIDED_SPREAD,
+    digits: style.digits * GUIDED_SPREAD,
+    meanWeight: style.meanWeight + GUIDED_MEAN_SHIFT[style.id],
+  };
+}
+
+/** How guided timing changes the average time per word, measured on the Alice sample. */
+const GUIDED_MEAN_SHIFT: Record<StyleId, number> = { flow: 0.03, phrases: -0.01, calm: -0.03 };
+
 /** The style to read with, from settings. */
-export function readingStyle(id: StyleId | undefined, even = false): ReadingStyle {
-  const style = STYLES[id ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
-  return even ? evenStyle(style) : style;
+export function readingStyle(id: StyleId | undefined, even = false, guided = false): ReadingStyle {
+  let style = STYLES[id ?? DEFAULT_STYLE] ?? STYLES[DEFAULT_STYLE];
+  if (even) style = evenStyle(style);
+  return guided ? guidedStyle(style) : style;
 }
 
 const TRAILING_CLOSERS = /["'”’»)\]}*]+$/;
