@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { paragraphEnds, startsSentence } from "../reader/timing";
 import { boldLength, CONTINUOUS, type GuideId } from "./guides";
+import { breakLines } from "./justify";
 
 /** Words kept rendered before and after the current one; the window moves on in paragraph steps. */
 const WORDS_BEFORE = 150;
@@ -24,6 +25,8 @@ interface Props {
   gradient?: boolean;
   /** Embolden the first half of each word (Bionic Reading). */
   bold?: boolean;
+  /** Justify, with line breaks chosen for the whole paragraph (Knuth-Plass, see justify.ts). */
+  justify?: boolean;
   playing: boolean;
   /** How far through the frame's words reading is, 0–1, read every animation frame for smooth guides. */
   progress: () => number;
@@ -58,7 +61,7 @@ interface Layout {
  * paragraphs; everything that moves (the guide, the scroll) is positioned directly in the DOM on each
  * word, or each animation frame for continuous guides, without re-rendering the text.
  */
-export function GuidedText({ words, paras, word, end, guide, gradient = false, bold = false, playing, progress, eyeLine = 0.4, onLineStarts }: Props) {
+export function GuidedText({ words, paras, word, end, guide, gradient = false, bold = false, justify = false, playing, progress, eyeLine = 0.4, onLineStarts }: Props) {
   const [win, setWin] = useState(() => windowAround(words, paras, word));
   if (win.words !== words || needsNewWindow(win, paras, words.length, word)) setWin(windowAround(words, paras, word));
 
@@ -74,33 +77,81 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
   const latest = useRef({ words, paraEnds, word, end, guide, progress, eyeLine, playing });
   latest.current = { words, paraEnds, word, end, guide, progress, eyeLine, playing };
 
+  /**
+   * Justified line breaks per paragraph (word indices one past each line's end), worked out from the
+   * rendered words' widths. A paragraph without them yet renders ragged, gets measured, then justified.
+   */
+  const [breaks, setBreaks] = useState<Map<number, number[]>>(() => new Map());
+
   const text = useMemo(() => {
+    const wordSpan = (i: number) => {
+      const w = words[i];
+      const cut = bold ? boldLength(w) : 0;
+      return (
+        <span key={i} className="gw">
+          {cut ? (
+            <>
+              <b>{w.slice(0, cut)}</b>
+              {w.slice(cut)}
+            </>
+          ) : (
+            w
+          )}
+        </span>
+      );
+    };
     const blocks = [];
     for (let p = win.first; p <= win.last; p++) {
       const start = paras[p];
       const stop = p + 1 < paras.length ? paras[p + 1] : words.length;
-      const spans = [];
-      for (let i = start; i < stop; i++) {
-        const w = words[i];
-        const cut = bold ? boldLength(w) : 0;
-        spans.push(
-          <span key={i} className="gw">
-            {cut ? (
-              <>
-                <b>{w.slice(0, cut)}</b>
-                {w.slice(cut)}
-              </>
-            ) : (
-              w
-            )}
-          </span>,
-          " ",
-        );
+      const lineEnds = justify ? breaks.get(p) : undefined;
+      if (lineEnds) {
+        // One block per line, its words spread edge to edge; the last line keeps natural spacing.
+        const lines: ReactNode[] = [];
+        let from = start;
+        lineEnds.forEach((to, n) => {
+          const last = n === lineEnds.length - 1;
+          const spans = [];
+          for (let i = from; i < to; i++) spans.push(wordSpan(i), last ? " " : null);
+          lines.push(
+            <span key={from} className={last ? "gl gl-last" : "gl"}>
+              {spans}
+            </span>,
+          );
+          from = to;
+        });
+        blocks.push(<p key={p}>{lines}</p>);
+      } else {
+        const spans = [];
+        for (let i = start; i < stop; i++) spans.push(wordSpan(i), " ");
+        blocks.push(<p key={p}>{spans}</p>);
       }
-      blocks.push(<p key={p}>{spans}</p>);
     }
     return blocks;
-  }, [words, paras, win.first, win.last, bold]);
+  }, [words, paras, win.first, win.last, bold, justify, breaks]);
+
+  /** Works out justified breaks for the paragraphs on screen; true if they changed. */
+  const justifyParagraphs = (content: HTMLElement, spans: HTMLElement[]) => {
+    const space = content.querySelector<HTMLElement>(".gw-space")?.getBoundingClientRect().width ?? 0;
+    const style = getComputedStyle(content);
+    const lineWidth = content.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    if (!space || lineWidth <= 0) return;
+    const first = paras[win.first];
+    const next = new Map(breaks);
+    let changed = false;
+    for (let p = win.first; p <= win.last; p++) {
+      const start = paras[p];
+      const stop = p + 1 < paras.length ? paras[p + 1] : words.length;
+      const widths = spans.slice(start - first, stop - first).map((s) => s.getBoundingClientRect().width);
+      const lineEnds = breakLines(widths, space, lineWidth).map((k) => start + k);
+      const old = breaks.get(p);
+      if (!old || old.length !== lineEnds.length || old.some((b, i) => b !== lineEnds[i])) {
+        next.set(p, lineEnds);
+        changed = true;
+      }
+    }
+    if (changed) setBreaks(next);
+  };
 
   /** Puts the text where it should be now, without easing towards it. */
   const snapScroll = () => {
@@ -187,6 +238,7 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
     const content = inner.current;
     if (!content) return;
     const measure = () => {
+      if (justify) justifyParagraphs(content, [...content.querySelectorAll<HTMLElement>(".gw")]);
       layout.current = measureLayout(content, paras[win.first], paras, gradient);
       for (const span of layout.current.spans) {
         if (guide !== "cover") span.classList.remove("gw-read");
@@ -199,7 +251,7 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
     const observer = new ResizeObserver(() => measure());
     observer.observe(content);
     return () => observer.disconnect();
-  }, [text, gradient, guide]);
+  }, [text, gradient, guide, justify]);
 
   useEffect(() => {
     if (!onLineStarts) return;
@@ -235,6 +287,10 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
       <div className="guided-text" ref={inner}>
         {text}
         <div className="guided-mark" ref={mark} />
+        {/* For measuring a space in the reading font, when justifying. */}
+        <span className="gw-space" aria-hidden>
+          {" "}
+        </span>
       </div>
       {guide === "scroll" && <div className="guided-eyeline" style={{ top: `${eyeLine * 100}%` }} />}
     </div>

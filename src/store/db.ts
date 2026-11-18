@@ -76,6 +76,8 @@ export interface Settings {
   guideGradient?: boolean;
   /** Guided reading: embolden the first half of each word (Bionic Reading). */
   guideBold?: boolean;
+  /** Guided reading: justified text with book-quality line breaks. */
+  guideJustify?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };

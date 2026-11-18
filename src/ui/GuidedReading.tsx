@@ -28,6 +28,7 @@ export function GuidedReading() {
       guide={settings.guide ?? "flash"}
       gradient={settings.guideGradient}
       bold={settings.guideBold}
+      justify={settings.guideJustify}
       playing={playing}
       progress={readingProgress}
       onLineStarts={setLineStartTest}
@@ -55,6 +56,7 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
   const styleId = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   const gradient = useStore(library, (s) => s.settings.guideGradient);
   const bold = useStore(library, (s) => s.settings.guideBold);
+  const justify = useStore(library, (s) => s.settings.guideJustify);
   const even = useStore(library, (s) => !!s.settings.evenRhythm);
   const style = useMemo(() => readingStyle(styleId, even), [styleId, even]);
   const starts = useMemo(() => buildFrames(SAMPLE, SAMPLE_ENDS, style), [style]);
@@ -89,6 +91,7 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
       guide={guide}
       gradient={gradient}
       bold={bold}
+      justify={justify}
       playing
       progress={() => {
         const { startedAt, holdMs, readMs } = clock.current;

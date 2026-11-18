@@ -2898,6 +2898,26 @@ ol {
   color: var(--focus);
 }
 
+/* ---------- Justified text (see ui/justify.ts) ---------- */
+
+/* A justified line: its words spread from edge to edge, the spaces between them shared out evenly. */
+.gl {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* A paragraph's last line keeps its natural spacing. */
+.gl-last {
+  display: block;
+}
+
+.gw-space {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
 /* ---------- Sentence cards (see ui/SentenceCards.tsx) ---------- */
 
 /* The card being read sits in the middle row; the one before rests above it, the next one below. */

@@ -247,6 +247,7 @@ function GuideLab() {
   const current = useStore(library, (s) => s.settings.guide ?? "flash");
   const gradient = useStore(library, (s) => !!s.settings.guideGradient);
   const bold = useStore(library, (s) => !!s.settings.guideBold);
+  const justify = useStore(library, (s) => !!s.settings.guideJustify);
   return (
     <div className="style-picker embedded">
       <div className="style-preview guide-preview">
@@ -285,6 +286,20 @@ function GuideLab() {
               </span>
             </span>
             <span className="style-check">{gradient && <CheckIcon size={16} />}</span>
+          </button>
+          <button
+            role="switch"
+            aria-checked={justify}
+            className={`style-option pressable ${justify ? "selected" : ""}`}
+            onClick={() => updateSettings({ guideJustify: !justify })}
+          >
+            <span className="style-option-text">
+              <span className="style-option-name">Justified, like a book</span>
+              <span className="style-option-tagline">
+                Straight edges on both sides, with line breaks chosen for the whole paragraph so the spacing stays even (as TeX does)
+              </span>
+            </span>
+            <span className="style-check">{justify && <CheckIcon size={16} />}</span>
           </button>
           <button
             role="switch"
