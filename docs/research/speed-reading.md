@@ -180,11 +180,19 @@ longer shortens long words, only short words, numbers and commas. The reader's c
 carrying the overshoot of one frame into the next as a fraction (a fraction of a long pause could be
 most of a short word); it now carries at most 34 ms.
 
+**Revised 2026-11-18**: the straight-line length bonus felt too strong. Every medium word was noticeably
+slower than a short one, which made the rhythm lurch. The bonus is now a curve, squared beyond 6 letters
+(Calm: 5): medium words get almost nothing, and only long words, which are rare and need recognising,
+get a lot more. At 360 wpm: "thought" 200 → 169 ms, "beginning" 233 → 191 ms, "conversation"
+283 → 263 ms, "uncomfortable" unchanged at ≈300 ms, "incomprehensible" 350 → 433 ms,
+"self-consciousness" 425 → 564 ms. perPart went up by 0.1 so hyphenated words keep their time
+("daisy-chain" 284 ms, "well-to-do" 327 ms). Mean weights re-measured on the Alice sample (29,998 words).
+
 ```
 base         = 60000 / wpm                                   // ms
 n            = letters + digits in the word (no punctuation)
 wordWeight   = (n <= 3 ? shortWord : 1)
-             + min(max(0, n - lengthFrom) * perLetter, maxLengthBonus)
+             + min(max(0, n - lengthFrom)² * lengthScale, maxLengthBonus)
              + (parts - 1) * perPart                         // parts of a hyphenated compound
              + (hasDigit ? digits : 0)
 frameWeight  = Σ wordWeight over the frame (function words inside a multi-word frame use functionWord)
@@ -213,8 +221,8 @@ pauseMs      = max(pause * base, pauseFloorMs[kind]) * ramp  // show blank or di
 | maxWords / maxChars | 1 / 40 | 3 / 16 | 1 / 40 |
 | chunk rule | — | leading function words + **one** content word; never cross `, ; : . ! ?` or a paragraph end; number + next word ("9 feet") if ≤ maxChars | — |
 | shortWord (≤3 letters) | 0.85 | 0.85 alone; **functionWord 0.5** inside a phrase | 1.0 |
-| lengthFrom / perLetter / maxLengthBonus | **5 / 0.10 / 1.8** | 5 / 0.10 / 1.8 | **4 / 0.12 / 2.2** |
-| perPart (each further part of a hyphenated word) | 0.35 | 0.35 | 0.45 |
+| lengthFrom / lengthScale (squared) / maxLengthBonus | **6 / 0.016 / 2.0** | 6 / 0.016 / 2.0 | **5 / 0.02 / 2.4** |
+| perPart (each further part of a hyphenated word) | 0.45 | 0.45 | 0.55 |
 | digits | 0.4 | 0.4 | 0.6 |
 | minFrameWeight | — | 1.0 | — |
 | clausePause / sentencePause / paragraphPause (added, × base) | **0.6 / 1.5 / 2.5** | 0.6 / 1.5 / 2.5 | **1.0 / 2.2 / 3.5** |
@@ -223,7 +231,7 @@ pauseMs      = max(pause * base, pauseFloorMs[kind]) * ramp  // show blank or di
 | pivot | `orpIndex` table | `orpIndex` for single words; letter nearest **0.4 × frame length** for multi-word frames | `orpIndex` table |
 | rampFrames | 6 | 4 | 8 |
 | rare-word bonus (phase 2) | off | off | on: `+min(0.2, 0.055 × max(0, 4.5 − zipf))` for n ≥ 4 |
-| measured mean weight per word (no floors) | 1.15–1.17 | 1.02–1.05 | 1.35–1.37 |
+| measured mean weight per word (no floors) | 1.13 | 1.01 | 1.32 |
 | **effective throughput at default wpm** | **≈ 260 wpm** | **≈ 330 wpm, at ≈ 1.5–1.6 words/frame** | **≈ 190 wpm** |
 
 How the values were chosen:

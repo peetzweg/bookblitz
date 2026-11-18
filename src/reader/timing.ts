@@ -22,8 +22,11 @@ export interface ReadingStyle {
   maxChars: number;
   /** Letters a word may have before it gets extra time. */
   lengthFrom: number;
-  /** Extra time per letter beyond `lengthFrom`, in word slots. */
-  perLetter: number;
+  /**
+   * Extra time for the letters beyond `lengthFrom`, squared, in word slots: a curve rather than a line,
+   * so medium words get barely more than a short one and only rare long ones get much longer.
+   */
+  lengthScale: number;
   /** Cap on the length bonus. */
   maxLengthBonus: number;
   /** Extra time for each further part of a hyphenated compound ("well-to-do" has two), in word slots. */
@@ -54,10 +57,10 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     defaultWpm: 300,
     maxWords: 1,
     maxChars: 40,
-    lengthFrom: 5,
-    perLetter: 0.1,
-    maxLengthBonus: 1.8,
-    perPart: 0.35,
+    lengthFrom: 6,
+    lengthScale: 0.016,
+    maxLengthBonus: 2,
+    perPart: 0.45,
     shortWord: 0.85,
     functionWord: 0.85,
     digits: 0.4,
@@ -65,7 +68,7 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     pauses: { clause: 0.6, sentence: 1.5, paragraph: 2.5 },
     pauseFloorMs: { clause: 90, sentence: 250, paragraph: 450 },
     rampFrames: 6,
-    meanWeight: 1.16,
+    meanWeight: 1.13,
   },
   phrases: {
     id: "phrases",
@@ -74,10 +77,10 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     defaultWpm: 340,
     maxWords: 3,
     maxChars: 16,
-    lengthFrom: 5,
-    perLetter: 0.1,
-    maxLengthBonus: 1.8,
-    perPart: 0.35,
+    lengthFrom: 6,
+    lengthScale: 0.016,
+    maxLengthBonus: 2,
+    perPart: 0.45,
     shortWord: 0.85,
     functionWord: 0.5,
     digits: 0.4,
@@ -85,7 +88,7 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     pauses: { clause: 0.6, sentence: 1.5, paragraph: 2.5 },
     pauseFloorMs: { clause: 90, sentence: 250, paragraph: 450 },
     rampFrames: 4,
-    meanWeight: 1.04,
+    meanWeight: 1.01,
   },
   calm: {
     id: "calm",
@@ -94,10 +97,10 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     defaultWpm: 260,
     maxWords: 1,
     maxChars: 40,
-    lengthFrom: 4,
-    perLetter: 0.12,
-    maxLengthBonus: 2.2,
-    perPart: 0.45,
+    lengthFrom: 5,
+    lengthScale: 0.02,
+    maxLengthBonus: 2.4,
+    perPart: 0.55,
     shortWord: 1,
     functionWord: 1,
     digits: 0.6,
@@ -105,7 +108,7 @@ export const STYLES: Record<StyleId, ReadingStyle> = {
     pauses: { clause: 1, sentence: 2.2, paragraph: 3.5 },
     pauseFloorMs: { clause: 150, sentence: 400, paragraph: 700 },
     rampFrames: 8,
-    meanWeight: 1.36,
+    meanWeight: 1.32,
   },
 };
 
@@ -217,7 +220,7 @@ function wordWeight(word: string, inPhrase: boolean, style: ReadingStyle) {
   const n = letters(bare(word));
   if (inPhrase && isFunctionWord(word)) return style.functionWord;
   let weight = n <= 3 ? style.shortWord : 1;
-  weight += Math.min(Math.max(0, n - style.lengthFrom) * style.perLetter, style.maxLengthBonus);
+  weight += Math.min(Math.max(0, n - style.lengthFrom) ** 2 * style.lengthScale, style.maxLengthBonus);
   // Each part of a compound is close to a word of its own: jetzt splits such words, Spritz hyphenates
   // long ones (§1.2). Shown as one, it gets the time of its parts instead.
   weight += (parts(word) - 1) * style.perPart;
