@@ -106,7 +106,29 @@ export function Settings() {
         try it on a real chapter. Cut is the classic.
       </p>
 
-      <h2 className="settings-heading">Font</h2>
+      <h2 className="settings-heading">Text</h2>
+      <section className="settings-group padded">
+        <div className="settings-speed">
+          <span className="type-size-small">A</span>
+          <Slider
+            label="Text size"
+            value={Math.round((settings.textSize ?? 1) * 100)}
+            min={80}
+            max={150}
+            step={5}
+            onChange={(v) => updateSettings({ textSize: v / 100 })}
+          />
+          <span className="type-size-large">A</span>
+        </div>
+        <div className="settings-row-split">
+          <span>Text size {Math.round((settings.textSize ?? 1) * 100)}%</span>
+          {(settings.textSize ?? 1) !== 1 && (
+            <button className="link-button" onClick={() => updateSettings({ textSize: 1 })}>
+              Reset
+            </button>
+          )}
+        </div>
+      </section>
       <section className="settings-group">
         {FONTS.map((f) => (
           <button key={f} className="settings-row pressable" onClick={() => updateSettings({ font: f })}>
@@ -115,6 +137,23 @@ export function Settings() {
           </button>
         ))}
       </section>
+
+      <h2 className="settings-heading">Headphones</h2>
+      <section className="settings-group">
+        <button
+          role="switch"
+          aria-checked={settings.headphoneControls !== false}
+          className="settings-row pressable"
+          onClick={() => updateSettings({ headphoneControls: settings.headphoneControls === false })}
+        >
+          <span>Play and pause from headphones</span>
+          {settings.headphoneControls !== false && <CheckIcon size={18} className="tint" />}
+        </button>
+      </section>
+      <p className="settings-footnote">
+        Your headphones' play/pause button pauses and resumes reading, and next and previous jump a sentence. To get
+        the buttons, bookblitz plays silence while you read, which stops music from other apps.
+      </p>
 
       <h2 className="settings-heading">Library</h2>
       <section className="settings-group">

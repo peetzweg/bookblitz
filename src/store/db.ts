@@ -60,6 +60,8 @@ export interface Settings {
   transition?: TransitionId;
   /** How strong the experimental transition is. Unset means "noticeable". */
   transitionIntensity?: Intensity;
+  /** Play/pause reading from headphones and the lock screen (see reader/remote.ts). Unset means on. */
+  headphoneControls?: boolean;
   /** Reading text size, as a multiple of the normal size. Unset means 1. */
   textSize?: number;
   /** Experimental: a steadier beat, with the timing differences between words roughly halved. */
