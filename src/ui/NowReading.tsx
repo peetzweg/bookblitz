@@ -343,7 +343,7 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
 
   return (
     <div
-      className={`reading-overlay ${shown ? "visible" : ""} ${shown && !playing ? "paused" : ""} ${guided ? "guided-overlay" : ""}`}
+      className={`reading-overlay ${shown ? "visible" : ""} ${shown && !playing ? "paused" : ""} ${guided ? "guided-overlay" : ""} ${rate !== null ? "adjusting" : ""}`}
       aria-hidden={!shown}
       onPointerDown={(e) => {
         suppressClick.current = false;

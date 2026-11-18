@@ -1860,14 +1860,28 @@ ol {
 }
 
 .speed-line.zero {
-  border-top: 1px dashed rgb(var(--ink) / 0.3);
+  border-top: 1.5px dashed rgb(var(--ink) / 0.45);
 }
 
 .speed-line.zero span {
   right: auto;
   left: 16px;
-  background: rgb(var(--ink) / 0.08);
-  color: var(--sheet-fg-2);
+  background: var(--paper);
+  color: rgb(var(--ink) / 0.75);
+  box-shadow: 0 0 0 1px rgb(var(--ink) / 0.2), 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+.speed-line.current span {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+}
+
+/* While the speed is being dragged, the text steps back so the lines read clearly on top of it. */
+.reading-overlay .reading-word {
+  transition: opacity 200ms var(--ease-out);
+}
+
+.reading-overlay.adjusting .reading-word {
+  opacity: 0.3;
 }
 
 .speed-line.current {
