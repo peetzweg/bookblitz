@@ -54,8 +54,10 @@ Playing.
   between words.
 - **Chapters are sessions.** Each chapter opens on a title card and ends on a short celebration, with the
   next chapter ready when you are.
-- **Drag to change speed.** While reading, drag up to go faster and down to slow down. Keep going down to
-  read backwards. Tap to pause and see the word in its paragraph.
+- **Drag to change speed.** While reading, drag and your speed shows as a line, with 0 wpm across the
+  middle of the screen: pull it down to go faster, up to slow down, and above the middle to read
+  backwards. It snaps to 0 and ticks as it moves (on phones that allow it). Tap to pause and see the word
+  in its paragraph.
 - **Never lose your place.** Progress saves as you read, when you pause and when you close the app.
 
 **Keyboard:** <kbd>Space</kbd> play/pause · <kbd>↑</kbd> <kbd>→</kbd> faster · <kbd>↓</kbd> <kbd>←</kbd> slower ·

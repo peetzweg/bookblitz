@@ -16,6 +16,8 @@ import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { WordDisplay } from "./WordDisplay";
 import { GuidedReading } from "./GuidedReading";
+import { haptic } from "./haptics";
+import { MAX_WPM, MIN_WPM } from "../store/db";
 
 
 const SHEET_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
@@ -89,8 +91,8 @@ function Sheet() {
       // Up/right is faster, down/left slower; with Shift, left/right jump a sentence.
       else if (e.shiftKey && e.key === "ArrowLeft") stepSentence(-1);
       else if (e.shiftKey && e.key === "ArrowRight") stepSentence(1);
-      else if (e.key === "ArrowUp" || e.key === "ArrowRight") setWpm(Math.min(1000, wpm + 25));
-      else if (e.key === "ArrowDown" || e.key === "ArrowLeft") setWpm(Math.max(100, wpm - 25));
+      else if (e.key === "ArrowUp" || e.key === "ArrowRight") setWpm(wpm + 25);
+      else if (e.key === "ArrowDown" || e.key === "ArrowLeft") setWpm(wpm - 25);
       else if (e.key === "Escape") close();
       else return;
       e.preventDefault();
@@ -277,29 +279,43 @@ function Sheet() {
   );
 }
 
-/** wpm gained per pixel dragged up (or lost per pixel dragged down). */
-const RATE_PER_PX = 3;
-/** Speeds this close to zero hold still, so there's a clear stop between forwards and backwards. */
-const HOLD_ZONE = 40;
-const MAX_FORWARD = 1000;
-const MAX_REVERSE = 600;
+/** The fastest the speed line goes backwards: enough to scan back a paragraph, not to blur past it. */
+const MAX_REVERSE = 400;
+/** Speeds this close to zero snap to it, so stopping is easy to hit. */
+const SNAP = 30;
+/** A haptic tick every this many wpm the line passes. */
+const TICK_EVERY = 50;
+/** Room kept between the fastest speed and the edge of the screen. */
+const EDGE_PX = 72;
 const MOVE_THRESHOLD = 8;
 
 /** How long the gesture hint stays up after reading starts. */
 const HINT_MS = 2600;
 
+interface SpeedGesture {
+  y: number;
+  base: number;
+  rate: number;
+  moved: boolean;
+  /** Screen pixels per wpm: the fastest speed sits just above the bottom edge. */
+  scale: number;
+}
+
 /**
  * While reading, everything else steps away: the word sits alone in the middle of the sheet, with a
- * hairline of chapter progress. The whole sheet is the touch surface: tap to pause, drag up to speed
- * up, down to slow down, and keep going down to read backwards. Letting go carries on forwards.
+ * hairline of chapter progress. The whole sheet is the touch surface. Tap to pause. Drag, and the speed
+ * shows as a line: the middle of the screen is 0 wpm, below it is forwards, faster the lower it goes,
+ * and above it is backwards. Letting go keeps a forward speed, stops at 0, and after reading backwards
+ * carries on at the speed you had before.
  */
 function ReadingOverlay() {
   const playing = useStore(reader, (s) => s.playing);
   const rate = useStore(reader, (s) => s.rate);
   const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
-  const gesture = useRef<{ y: number; base: number; moved: boolean; rate: number } | null>(null);
+  const gesture = useRef<SpeedGesture | null>(null);
   const suppressClick = useRef(false);
   const [hint, setHint] = useState(false);
+  const [scale, setScale] = useState(0);
 
   useEffect(() => {
     if (!playing) return setHint(false);
@@ -313,9 +329,10 @@ function ReadingOverlay() {
     gesture.current = null;
     if (!g?.moved) return;
     suppressClick.current = true;
-    // Reading backwards is a detour: on release, carry on at the speed you had before.
-    if (g.rate > 0) setWpm(Math.min(MAX_FORWARD, Math.max(100, Math.round(g.rate / 10) * 10)));
     setLiveRate(null);
+    if (g.rate > 0) setWpm(Math.round(g.rate / 10) * 10);
+    else if (g.rate === 0) pause();
+    // Reading backwards is a detour: on release, carry on at the speed you had before.
   };
 
   return (
@@ -327,20 +344,25 @@ function ReadingOverlay() {
         if (!reader.get().playing) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const base = library.get().settings.wpm;
-        gesture.current = { y: e.clientY, base, moved: false, rate: base };
+        const scale = (e.currentTarget.clientHeight / 2 - EDGE_PX) / MAX_WPM;
+        gesture.current = { y: e.clientY, base, rate: base, moved: false, scale };
+        setScale(scale);
         setHint(false);
       }}
       onPointerMove={(e) => {
         const g = gesture.current;
         if (!g) return;
-        // Up is faster (screen y grows downwards).
-        const dy = g.y - e.clientY;
+        // Down is faster (screen y grows downwards), up slows down, through 0 and on into reverse.
+        const dy = e.clientY - g.y;
         if (!g.moved && Math.abs(dy) < MOVE_THRESHOLD) return;
         g.moved = true;
-        const raw = g.base + (dy - Math.sign(dy) * MOVE_THRESHOLD) * RATE_PER_PX;
-        const clamped = Math.min(MAX_FORWARD, Math.max(-MAX_REVERSE, raw));
-        g.rate = Math.abs(clamped) < HOLD_ZONE ? 0 : Math.round(clamped);
-        setLiveRate(g.rate);
+        const raw = Math.min(MAX_WPM, Math.max(-MAX_REVERSE, g.base + (dy - Math.sign(dy) * MOVE_THRESHOLD) / g.scale));
+        const next = Math.abs(raw) < SNAP ? 0 : Math.round(raw);
+        // A tick for every step the line passes, for snapping onto 0, and for reaching either end.
+        const step = (r: number) => (r === 0 ? 0 : Math.sign(r) * Math.ceil(Math.abs(r) / TICK_EVERY));
+        if (step(next) !== step(g.rate) || ((next === MAX_WPM || next === -MAX_REVERSE) && next !== g.rate)) haptic();
+        g.rate = next;
+        setLiveRate(next);
       }}
       onPointerUp={end}
       onPointerCancel={end}
@@ -348,15 +370,33 @@ function ReadingOverlay() {
         if (!suppressClick.current) pause();
       }}
     >
-      <div className="reading-word">
-        <div className={`speed-hud ${rate !== null ? "shown" : ""} ${rate !== null && rate < 0 ? "reverse" : ""}`}>
-          {rate === null || rate > 0 ? <ForwardIcon size={13} /> : rate < 0 ? <BackIcon size={13} /> : <PauseIcon size={11} />}
-          <span>{rate === null ? "" : rate === 0 ? "Hold" : `${Math.abs(rate)} wpm${rate < 0 ? " back" : ""}`}</span>
-        </div>
-        {guided ? <GuidedReading /> : <WordDisplay />}
-      </div>
-      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↑ faster, ↓ slower</div>
+      <div className="reading-word">{guided ? <GuidedReading /> : <WordDisplay />}</div>
+      <SpeedLines rate={rate} scale={scale} />
+      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↓ faster, ↑ slower and back</div>
       <ChapterHairline />
+    </div>
+  );
+}
+
+/** The speed gesture on screen: a fixed line at 0 wpm across the middle, and the speed you're dragging. */
+function SpeedLines({ rate, scale }: { rate: number | null; scale: number }) {
+  const shown = rate !== null;
+  // Keep the last position while fading out, rather than jumping back to the middle.
+  const last = useRef(0);
+  if (rate !== null) last.current = rate;
+  const r = last.current;
+  const label = r === 0 ? "Stop" : r > 0 ? `${r} wpm` : `${-r} wpm back`;
+  return (
+    <div className={`speed-lines ${shown ? "shown" : ""}`} aria-hidden>
+      <div className="speed-line zero">
+        <span>0</span>
+      </div>
+      <div
+        className={`speed-line current ${r < 0 ? "reverse" : ""} ${r === 0 ? "stop" : ""}`}
+        style={{ transform: `translateY(${r * scale}px)` }}
+      >
+        <span>{label}</span>
+      </div>
     </div>
   );
 }
@@ -403,9 +443,9 @@ function SpeedControl() {
   const wpm = useStore(library, (s) => s.settings.wpm);
   return (
     <div className="speed">
-      <span className="speed-end">100</span>
-      <Slider label="Words per minute" value={wpm} min={100} max={1000} step={10} onChange={setWpm} />
-      <span className="speed-end">1000</span>
+      <span className="speed-end">{MIN_WPM}</span>
+      <Slider label="Words per minute" value={wpm} min={MIN_WPM} max={MAX_WPM} step={10} onChange={setWpm} />
+      <span className="speed-end">{MAX_WPM}</span>
       <div className="speed-value">{wpm} words per minute</div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MAX_WPM, MIN_WPM } from "../store/db";
 import { applyUpdate, checkForUpdate, isIosSafari, promptInstall, usePwa, type UpdateStatus } from "../pwa";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
 import { closeBook, reader, setWpm } from "../reader/reader";
@@ -56,9 +57,9 @@ export function Settings() {
       <h2 className="settings-heading">Speed</h2>
       <section className="settings-group padded">
         <div className="settings-speed">
-          <span className="speed-end">100</span>
-          <Slider label="Words per minute" value={settings.wpm} min={100} max={1000} step={10} onChange={setWpm} />
-          <span className="speed-end">1000</span>
+          <span className="speed-end">{MIN_WPM}</span>
+          <Slider label="Words per minute" value={settings.wpm} min={MIN_WPM} max={MAX_WPM} step={10} onChange={setWpm} />
+          <span className="speed-end">{MAX_WPM}</span>
         </div>
         <div className="settings-row-split">
           <span>{settings.wpm} words per minute</span>

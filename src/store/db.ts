@@ -72,6 +72,14 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = { wpm: 350, font: "sans" };
 
+/**
+ * The speeds you can set. Above about 700 wpm comprehension in RSVP falls well below normal reading
+ * (Acklin & Papesh 2017, see docs/research/speed-reading.md); 900 leaves room to try, without the
+ * 1000+ that nobody reads at.
+ */
+export const MIN_WPM = 100;
+export const MAX_WPM = 900;
+
 interface Schema extends DBSchema {
   books: { key: string; value: BookMeta };
   content: { key: string; value: ChapterContent[] };

@@ -1,4 +1,4 @@
-import { db, type BookMeta, type ChapterContent } from "../store/db";
+import { db, MAX_WPM, MIN_WPM, type BookMeta, type ChapterContent } from "../store/db";
 import { library, markOpened, saveProgress, updateSettings } from "../store/library";
 import { createStore } from "../store/store";
 import { setEstimateWeight } from "./rsvp";
@@ -62,6 +62,8 @@ const MAX_CARRY_MS = 34;
  * start of a line, reading its words, and the pause after.
  */
 let timing = { holdMs: 0, readMs: 1, pauseMs: 0 };
+/** Reading backwards (a negative speed from the speed gesture): the eye moves right to left through a frame. */
+let reversed = false;
 /** Set by guided reading: whether a word starts a line on screen. */
 let startsLine: ((word: number) => boolean) | null = null;
 
@@ -115,6 +117,7 @@ export function setOpen(open: boolean) {
 }
 
 export function play() {
+  reversed = false;
   const { content, chapter, word, playing } = reader.get();
   if (!content || playing) return;
   // The first read starts with picking a style, so people feel the options before settling on one.
@@ -200,7 +203,7 @@ export function stepChapter(direction: -1 | 1) {
 }
 
 export function setWpm(wpm: number) {
-  updateSettings({ wpm });
+  updateSettings({ wpm: clamp(wpm, MIN_WPM, MAX_WPM) });
 }
 
 /** Overrides the speed while the speed gesture is held; pass `null` to go back to the normal speed. */
@@ -217,6 +220,7 @@ function tick(now: number) {
   const rate = state.rate ?? library.get().settings.wpm;
   if (rate !== 0) {
     const forward = rate > 0;
+    reversed = !forward;
     const style = currentStyle();
     const words = state.content[state.chapter].words;
     // Pauses, length bonuses and the ramp-up only make sense reading forwards; backwards is a scan.
@@ -250,7 +254,9 @@ export function readingProgress(): number {
   if (!reader.get().playing) return 0;
   const total = timing.holdMs + timing.readMs + timing.pauseMs;
   const elapsed = frameProgress * total - timing.holdMs;
-  return Math.min(1, Math.max(0, elapsed / Math.max(timing.readMs, 1)));
+  const p = Math.min(1, Math.max(0, elapsed / Math.max(timing.readMs, 1)));
+  // Backwards, frames step towards the start, so within a frame the eye has to move that way too.
+  return reversed ? 1 - p : p;
 }
 
 function step(forward: boolean) {

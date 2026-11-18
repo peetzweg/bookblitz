@@ -1,5 +1,5 @@
 import { parseEpub } from "../epub/parse";
-import { closeDatabase, db, DEFAULT_SETTINGS, onStorageStuck, resetDatabase, type BookMeta, type Progress, type Settings } from "./db";
+import { closeDatabase, db, DEFAULT_SETTINGS, MAX_WPM, MIN_WPM, onStorageStuck, resetDatabase, type BookMeta, type Progress, type Settings } from "./db";
 import { createStore } from "./store";
 
 interface LibraryState {
@@ -25,7 +25,9 @@ export const library = createStore<LibraryState>({
 onStorageStuck(() => library.set({ stuck: true }));
 
 export async function loadLibrary() {
-  const [books, progress, settings] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
+  const [books, progress, saved] = await Promise.all([db.books(), db.allProgress(), db.settings()]);
+  // Speeds saved before the range narrowed come back inside it.
+  const settings = { ...saved, wpm: Math.min(MAX_WPM, Math.max(MIN_WPM, saved.wpm)) };
   library.set({ ready: true, books: sortBooks(books, progress), progress, settings });
 }
 

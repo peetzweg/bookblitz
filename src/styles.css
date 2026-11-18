@@ -1655,34 +1655,72 @@ ol {
   padding: 0 24px;
 }
 
-.speed-hud {
+/* The speed gesture: 0 wpm across the middle, and the speed being dragged, below it forwards, above it
+   back. Behind the text, and only while dragging. */
+.speed-lines {
   position: absolute;
-  bottom: calc(100% + 18px);
-  left: 50%;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.speed-lines.shown {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+
+.speed-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+}
+
+.speed-line span {
+  position: absolute;
+  right: 16px;
+  top: 0;
+  transform: translateY(-50%);
+  padding: 3px 9px;
   border-radius: 999px;
-  background: rgb(var(--ink) / 0.1);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, 4px);
-  transition:
-    opacity 150ms var(--ease-out),
-    transform 150ms var(--ease-out);
 }
 
-.speed-hud.shown {
-  opacity: 1;
-  transform: translate(-50%, 0);
+.speed-line.zero {
+  border-top: 1px dashed rgb(var(--ink) / 0.3);
 }
 
-.speed-hud.reverse {
-  background: color-mix(in oklab, var(--focus) 35%, transparent);
+.speed-line.zero span {
+  right: auto;
+  left: 16px;
+  background: rgb(var(--ink) / 0.08);
+  color: var(--sheet-fg-2);
+}
+
+.speed-line.current {
+  --line: var(--accent);
+  border-top: 2px solid var(--line);
+  margin-top: -1px;
+}
+
+/* Backwards is a different kind of reading: amber, not the forward green. */
+.speed-line.current.reverse {
+  --line: #d9822b;
+}
+
+.speed-line.current.stop {
+  --line: rgb(var(--ink) / 0.7);
+}
+
+.speed-line.current span {
+  background: var(--line);
+  color: var(--paper);
 }
 
 .reading-hint {
@@ -2406,12 +2444,6 @@ ol {
   flex-direction: column;
   max-width: 640px;
   padding: calc(var(--safe-top) + 56px) 28px calc(var(--safe-bottom) + 64px);
-}
-
-.guided-overlay .speed-hud {
-  bottom: auto;
-  top: calc(var(--safe-top) + 14px);
-  z-index: 3;
 }
 
 .guided {
