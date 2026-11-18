@@ -59,7 +59,9 @@ export function SentenceCards({ words, paras, word, end, onLineStarts }: Props) 
               const state = c.role !== "current" ? "" : at >= word && at < end ? "sc-now" : at < word ? "sc-read" : "";
               return (
                 <Fragment key={at}>
-                  <span className={`sc-word ${state}`}>{w}</span>{" "}
+                  <span className={`sc-word ${state}`} data-word={at}>
+                    {w}
+                  </span>{" "}
                 </Fragment>
               );
             })}

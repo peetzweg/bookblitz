@@ -250,13 +250,16 @@ function Sheet() {
             >
               <span className={`footer-aa font-${font}`}>Aa</span>
             </button>
-            <button
-              className={`icon-button footer-button ${panel === "text" ? "on" : ""}`}
-              onClick={() => togglePanel("text")}
-              aria-label="Show the text around this word"
-            >
-              <TextIcon size={22} />
-            </button>
+            {/* Guided reading shows the page already, and its words can be tapped to jump there. */}
+            {!guided && (
+              <button
+                className={`icon-button footer-button ${panel === "text" ? "on" : ""}`}
+                onClick={() => togglePanel("text")}
+                aria-label="Show the text around this word"
+              >
+                <TextIcon size={22} />
+              </button>
+            )}
             <button
               className={`icon-button footer-button ${showChapters ? "on" : ""}`}
               onClick={() => togglePanel("chapters")}
@@ -378,8 +381,12 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
       }}
       onPointerUp={end}
       onPointerCancel={end}
-      onClick={() => {
-        if (!suppressClick.current) toggle();
+      onClick={(e) => {
+        if (suppressClick.current) return;
+        // Paused on the guided page: tapping a word jumps there; anywhere else carries on reading.
+        const target = !reader.get().playing && (e.target as HTMLElement).closest<HTMLElement>("[data-word]");
+        if (target) return seek(reader.get().chapter, Number(target.dataset.word));
+        toggle();
       }}
     >
       <div className="reading-word">{guided ? <GuidedReading /> : <WordDisplay />}</div>

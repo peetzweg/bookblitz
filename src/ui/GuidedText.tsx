@@ -92,7 +92,7 @@ export function GuidedText({ words, paras, word, end, guide, gradient = false, b
       const w = words[i];
       const cut = bold ? boldLength(w) : 0;
       return (
-        <span key={i} className="gw">
+        <span key={i} className="gw" data-word={i}>
           {cut ? (
             <>
               <b>{w.slice(0, cut)}</b>
