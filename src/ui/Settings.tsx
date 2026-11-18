@@ -97,6 +97,12 @@ export function Settings() {
         speed and with your reading style's pauses. Try each on a real chapter.
       </p>
 
+      <h2 className="settings-heading">Easier reading · Experimental</h2>
+      <section className="settings-group padded lab-section">
+        <ComfortLab />
+      </section>
+      <p className="settings-footnote">Work with any reading style and guide.</p>
+
       <h2 className="settings-heading">Word transitions · Experimental</h2>
       <section className="settings-group padded lab-section">
         <TransitionLab />
@@ -379,6 +385,40 @@ function TransitionLab() {
           </div>
         </div>
       ))}
+      </div>
+    </div>
+  );
+}
+
+function ComfortLab() {
+  const hold = useStore(library, (s) => !!s.settings.holdToRead);
+  const gentle = useStore(library, (s) => !!s.settings.gentleStart);
+  const options = [
+    {
+      on: hold,
+      toggle: () => updateSettings({ holdToRead: !hold }),
+      name: "Hold to read",
+      tagline: "Reading only moves while your finger is on the screen; let go and it stops. You never have to keep up",
+    },
+    {
+      on: gentle,
+      toggle: () => updateSettings({ gentleStart: !gentle }),
+      name: "Gentle start",
+      tagline: "Each session starts at three quarters of your speed and eases up to it over the first 45 seconds",
+    },
+  ];
+  return (
+    <div className="style-picker embedded">
+      <div className="style-options">
+        {options.map((o) => (
+          <button key={o.name} role="switch" aria-checked={o.on} className={`style-option pressable ${o.on ? "selected" : ""}`} onClick={o.toggle}>
+            <span className="style-option-text">
+              <span className="style-option-name">{o.name}</span>
+              <span className="style-option-tagline">{o.tagline}</span>
+            </span>
+            <span className="style-check">{o.on && <CheckIcon size={16} />}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

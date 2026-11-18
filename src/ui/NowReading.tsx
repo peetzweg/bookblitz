@@ -10,7 +10,7 @@ import { land, takeOff } from "./coverFlight";
 import { TypePanel } from "./TypePanel";
 import { ContextView } from "./ContextView";
 import { FONT_NAMES } from "./fonts";
-import { BackIcon, ChapterBackIcon, ChapterForwardIcon, CheckIcon, TextIcon, ChevronDownIcon, RhythmIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
+import { BackIcon, ChapterBackIcon, ChapterForwardIcon, CheckIcon, TextIcon, ChevronDownIcon, ForwardIcon, ListIcon, PauseIcon, PlayIcon } from "./icons";
 import { Slider } from "./Slider";
 import { StylePicker } from "./StylePicker";
 import { DEFAULT_STYLE, STYLES } from "../reader/timing";
@@ -111,7 +111,7 @@ function Sheet() {
   // Pausing doesn't change the view: the word (or the page) stays exactly where it was and the controls
   // fade in over it. The paragraph around the word is a panel of its own (Text).
   const reading = playing || (!choosing && !onCard && panel === null);
-  const sheetMode = `${choosing ? "choosing-style" : onCard ? "on-card" : ""} ${reading ? "reading" : ""} ${playing ? "playing" : ""}`;
+  const sheetMode = `${choosing ? "choosing-style" : onCard ? "on-card" : ""} ${reading ? "reading" : ""} ${playing ? "playing" : ""} ${panel === "type" ? "choosing-type" : ""}`;
 
   return (
     <>
@@ -244,20 +244,11 @@ function Sheet() {
 
           <div className="sheet-footer">
             <button
-              className={`footer-button font-button ${panel === "type" ? "on" : ""}`}
+              className={`icon-button footer-button ${panel === "type" ? "on" : ""}`}
               onClick={() => togglePanel("type")}
-              aria-label={`Text: ${FONT_NAMES[font]}. Tap to change the font and size.`}
+              aria-label={`Text and reading style: ${FONT_NAMES[font]}, ${style.name}`}
             >
-              <span className={`font-${font}`}>Aa</span>
-              <span className="font-name">{FONT_NAMES[font] ?? FONT_NAMES.sans}</span>
-            </button>
-            <button
-              className={`footer-button font-button ${showStyles ? "on" : ""}`}
-              onClick={() => togglePanel("styles")}
-              aria-label={`Reading style: ${style.name}. Tap to change.`}
-            >
-              <RhythmIcon size={20} />
-              <span className="font-name">{style.name}</span>
+              <span className={`footer-aa font-${font}`}>Aa</span>
             </button>
             <button
               className={`icon-button footer-button ${panel === "text" ? "on" : ""}`}
@@ -314,13 +305,18 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
   const playing = useStore(reader, (s) => s.playing);
   const rate = useStore(reader, (s) => s.rate);
   const guided = useStore(library, (s) => (s.settings.guide ?? "flash") !== "flash");
+  const holdToRead = useStore(library, (s) => !!s.settings.holdToRead);
   const gesture = useRef<SpeedGesture | null>(null);
   const suppressClick = useRef(false);
   const [hint, setHint] = useState(false);
   const [scale, setScale] = useState(0);
 
+  // Once each time the reader opens: by the second time you start reading, you know.
+  const hinted = useRef(false);
   useEffect(() => {
     if (!playing) return setHint(false);
+    if (hinted.current) return;
+    hinted.current = true;
     setHint(true);
     const timer = setTimeout(() => setHint(false), HINT_MS);
     return () => clearTimeout(timer);
@@ -329,6 +325,14 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
   const end = () => {
     const g = gesture.current;
     gesture.current = null;
+    // Hold to read: letting go stops, whatever the finger did.
+    if (g && library.get().settings.holdToRead) {
+      suppressClick.current = true;
+      setLiveRate(null);
+      if (g.moved && g.rate > 0) setWpm(Math.round(g.rate / 10) * 10);
+      pause();
+      return;
+    }
     if (!g?.moved) return;
     suppressClick.current = true;
     setLiveRate(null);
@@ -343,6 +347,8 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
       aria-hidden={!shown}
       onPointerDown={(e) => {
         suppressClick.current = false;
+        // Hold to read: a finger on the reading view reads, lifting it stops.
+        if (shown && !reader.get().playing && library.get().settings.holdToRead) play();
         if (!reader.get().playing) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const base = library.get().settings.wpm;
@@ -374,7 +380,9 @@ function ReadingOverlay({ shown }: { shown: boolean }) {
     >
       <div className="reading-word">{guided ? <GuidedReading /> : <WordDisplay />}</div>
       <SpeedLines rate={rate} scale={scale} />
-      <div className={`reading-hint ${hint ? "shown" : ""}`}>Tap to pause · drag ↓ faster, ↑ slower and back</div>
+      <div className={`reading-hint ${hint ? "shown" : ""}`}>
+        {holdToRead ? "Let go to pause" : "Tap to pause"} · drag ↓ faster, ↑ slower and back
+      </div>
       <ChapterHairline />
     </div>
   );
@@ -395,7 +403,7 @@ function SpeedLines({ rate, scale }: { rate: number | null; scale: number }) {
       </div>
       <div
         className={`speed-line current ${r < 0 ? "reverse" : ""} ${r === 0 ? "stop" : ""}`}
-        style={{ transform: `translateY(${r * scale}px)` }}
+        style={{ transform: `translate3d(0, ${Math.round(r * scale)}px, 0)` }}
       >
         <span>{label}</span>
       </div>

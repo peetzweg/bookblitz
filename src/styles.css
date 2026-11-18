@@ -110,27 +110,27 @@ ol {
 }
 
 .font-serif,
-.reader-font-serif :is(.rsvp, .context, .guided-text, .card-title, .up-next-title) {
+.reader-font-serif :is(.rsvp, .context, .guided-text, .sentence-cards, .card-title, .up-next-title) {
   font-family: var(--serif);
 }
 
 .font-iowan,
-.reader-font-iowan :is(.rsvp, .context, .guided-text, .card-title, .up-next-title) {
+.reader-font-iowan :is(.rsvp, .context, .guided-text, .sentence-cards, .card-title, .up-next-title) {
   font-family: var(--iowan);
 }
 
 .font-charter,
-.reader-font-charter :is(.rsvp, .context, .guided-text, .card-title, .up-next-title) {
+.reader-font-charter :is(.rsvp, .context, .guided-text, .sentence-cards, .card-title, .up-next-title) {
   font-family: var(--charter);
 }
 
 .font-athelas,
-.reader-font-athelas :is(.rsvp, .context, .guided-text, .card-title, .up-next-title) {
+.reader-font-athelas :is(.rsvp, .context, .guided-text, .sentence-cards, .card-title, .up-next-title) {
   font-family: var(--athelas);
 }
 
 .font-rounded,
-.reader-font-rounded :is(.rsvp, .context, .guided-text, .card-title, .up-next-title) {
+.reader-font-rounded :is(.rsvp, .context, .guided-text, .sentence-cards, .card-title, .up-next-title) {
   font-family: var(--rounded);
 }
 
@@ -1603,6 +1603,7 @@ ol {
 /* Choosing a style: the speed slider stays (the previews play at your speed), the transport goes. */
 .choosing-style .scrubber,
 .choosing-style .transport,
+.choosing-type :is(.scrubber, .transport, .speed),
 .on-card :is(.scrubber, .transport, .speed) {
   display: none;
 }
@@ -1638,7 +1639,7 @@ ol {
 }
 
 /* The guided page stays, fading out above the controls instead of running under them. */
-.reading-overlay.paused.guided-overlay .guided {
+.reading-overlay.paused.guided-overlay .guided:not(.sentence-cards) {
   mask-image: linear-gradient(transparent, #000 16%, #000 46%, transparent 62%);
   -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 46%, transparent 62%);
 }
@@ -1730,6 +1731,50 @@ ol {
   color: var(--sheet-fg-2);
 }
 
+.type-heading {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sheet-fg-2);
+}
+
+.type-styles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.type-style {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-align: left;
+  background: rgb(var(--ink) / 0.06);
+  box-shadow: inset 0 0 0 1.5px transparent;
+  transition: box-shadow 160ms var(--ease-out);
+}
+
+.type-style.selected {
+  box-shadow: inset 0 0 0 1.5px var(--focus);
+}
+
+.type-style-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.type-style-tagline {
+  font-size: 13px;
+  color: var(--sheet-fg-2);
+}
+
+.footer-aa {
+  font-size: 19px;
+  font-weight: 600;
+}
+
 .type-font-check {
   position: absolute;
   top: 8px;
@@ -1776,11 +1821,13 @@ ol {
 }
 
 /* The speed gesture: 0 wpm across the middle, and the speed being dragged, below it forwards, above it
-   back. Behind the text, and only while dragging. */
+   back. Over everything while dragging: it's what you're holding. */
 .speed-lines {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 5;
+  /* Its own compositing layer: iOS Safari otherwise leaves trails of the moving line behind it. */
+  transform: translateZ(0);
   pointer-events: none;
   opacity: 0;
   transition: opacity 300ms var(--ease-out);
@@ -1825,6 +1872,7 @@ ol {
 
 .speed-line.current {
   --line: var(--accent);
+  will-change: transform;
   border-top: 2px solid var(--line);
   margin-top: -1px;
 }
@@ -2678,6 +2726,9 @@ ol {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  /* Room either side for the highlight's rounded edge, which would otherwise be cut off at the margin. */
+  margin-inline: -10px;
+  padding-inline: 10px;
   mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
   -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
 }
@@ -2845,4 +2896,67 @@ ol {
 
 .rw-current .rw-f {
   color: var(--focus);
+}
+
+/* ---------- Sentence cards (see ui/SentenceCards.tsx) ---------- */
+
+/* The card being read sits in the middle row; the one before rests above it, the next one below. */
+.sentence-cards {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  row-gap: 0.9em;
+  font-size: calc(clamp(20px, 5.6vw, 25px) * var(--text-scale, 1));
+  line-height: 1.5;
+  text-wrap: pretty;
+  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+
+.sc-card {
+  margin: 0;
+}
+
+.sc-prev {
+  grid-row: 1;
+  align-self: end;
+}
+
+.sc-current {
+  grid-row: 2;
+}
+
+.sc-next {
+  grid-row: 3;
+  align-self: start;
+}
+
+/* A new paragraph: a little more room above. */
+.sc-current.sc-para,
+.sc-next.sc-para {
+  margin-top: 0.6em;
+}
+
+.sc-word {
+  border-radius: 0.2em;
+  transition:
+    background-color 120ms var(--ease-out),
+    color 200ms var(--ease-out);
+}
+
+.sc-read {
+  color: rgb(var(--ink) / 0.55);
+}
+
+.sc-now {
+  background: color-mix(in oklab, var(--focus) 26%, transparent);
+  box-shadow: 0 0 0 0.12em color-mix(in oklab, var(--focus) 26%, transparent);
+}
+
+/* Paused, the card stays whole; the next one, which would sit under the controls, steps away. */
+.reading-overlay.paused .sc-next {
+  visibility: hidden;
+}
+
+.guide-preview .sentence-cards {
+  font-size: 18px;
 }

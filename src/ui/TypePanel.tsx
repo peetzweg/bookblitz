@@ -1,3 +1,4 @@
+import { DEFAULT_STYLE, STYLES, type StyleId } from "../reader/timing";
 import { library, updateSettings } from "../store/library";
 import { useStore } from "../store/store";
 import { CheckIcon } from "./icons";
@@ -8,13 +9,16 @@ import { WordDisplay } from "./WordDisplay";
 const MIN_TEXT_SIZE = 0.8;
 const MAX_TEXT_SIZE = 1.5;
 
+const STYLE_ORDER: StyleId[] = ["flow", "phrases", "calm"];
+
 /**
- * The reader's Aa panel: font and text size, with the word you're on (or a few lines, for guided
- * reading) as the preview, so you see exactly what reading will look like.
+ * The reader's Aa panel, everything about how reading looks in one place: text size, font and reading
+ * style, with the word you're on (or a few lines, for guided reading) as the preview.
  */
 export function TypePanel({ guided }: { guided: boolean }) {
   const font = useStore(library, (s) => s.settings.font);
   const size = useStore(library, (s) => s.settings.textSize ?? 1);
+  const style = useStore(library, (s) => s.settings.style ?? DEFAULT_STYLE);
   return (
     <div className="type-panel">
       <div className="type-preview">{guided ? <GuidedPreview /> : <WordDisplay />}</div>
@@ -47,6 +51,21 @@ export function TypePanel({ guided }: { guided: boolean }) {
             <span className={`type-font-sample font-${f}`}>Aa</span>
             <span className="type-font-name">{FONT_NAMES[f]}</span>
             {f === font && <CheckIcon size={14} className="type-font-check" />}
+          </button>
+        ))}
+      </div>
+      <div className="type-heading">Reading style</div>
+      <div className="type-styles" role="radiogroup" aria-label="Reading style">
+        {STYLE_ORDER.map((id) => (
+          <button
+            key={id}
+            role="radio"
+            aria-checked={id === style}
+            className={`type-style pressable ${id === style ? "selected" : ""}`}
+            onClick={() => updateSettings({ style: id, styleChosen: true })}
+          >
+            <span className="type-style-name">{STYLES[id].name}</span>
+            <span className="type-style-tagline">{STYLES[id].tagline}</span>
           </button>
         ))}
       </div>

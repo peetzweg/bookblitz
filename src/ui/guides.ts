@@ -4,7 +4,7 @@
  * on purpose, to try on real chapters before narrowing down. See docs/research/guided-reading.md.
  */
 
-export type GuideId = "flash" | "highlight" | "pacer" | "hops" | "sentence" | "focus" | "cover" | "scroll";
+export type GuideId = "flash" | "cards" | "highlight" | "pacer" | "hops" | "sentence" | "focus" | "cover" | "scroll";
 
 interface Guide {
   id: GuideId;
@@ -17,6 +17,11 @@ const GUIDES: Guide[] = [
     id: "flash",
     name: "Off: flash words",
     description: "The classic: one word (or phrase) at a time in one place, so your eyes never move",
+  },
+  {
+    id: "cards",
+    name: "Sentence cards",
+    description: "One sentence at a time as ordinary text in the middle of the screen, the words lighting up at your pace. Your eyes stay put but read normally",
   },
   {
     id: "highlight",

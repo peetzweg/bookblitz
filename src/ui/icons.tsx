@@ -93,12 +93,6 @@ export const TextIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const RhythmIcon = (p: IconProps) => (
-  <Icon {...p} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-    <path d="M4 7h9M4 12h16M4 17h6" />
-  </Icon>
-);
-
 export const GearIcon = (p: IconProps) => (
   <Icon {...p} fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3.2" />

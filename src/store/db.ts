@@ -62,6 +62,10 @@ export interface Settings {
   transitionIntensity?: Intensity;
   /** Play/pause reading from headphones and the lock screen (see reader/remote.ts). Unset means on. */
   headphoneControls?: boolean;
+  /** Experimental: reading only moves while a finger is on the screen. */
+  holdToRead?: boolean;
+  /** Experimental: each reading session starts at 75% speed and eases up to full over its first 45 seconds. */
+  gentleStart?: boolean;
   /** Reading text size, as a multiple of the normal size. Unset means 1. */
   textSize?: number;
   /** Experimental: a steadier beat, with the timing differences between words roughly halved. */

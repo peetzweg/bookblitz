@@ -6,6 +6,7 @@ import { library } from "../store/library";
 import { useStore } from "../store/store";
 import type { GuideId } from "./guides";
 import { GuidedText } from "./GuidedText";
+import { SentenceCards } from "./SentenceCards";
 
 /** The chapter being read, with the guide from settings, driven by the reader's clock. */
 export function GuidedReading() {
@@ -15,10 +16,13 @@ export function GuidedReading() {
   const playing = useStore(reader, (s) => s.playing);
   const settings = useStore(library, (s) => s.settings);
   if (!content) return null;
+  const paras = content.paras.length ? content.paras : NO_PARAS;
+  if (settings.guide === "cards")
+    return <SentenceCards words={content.words} paras={paras} word={word} end={end} onLineStarts={setLineStartTest} />;
   return (
     <GuidedText
       words={content.words}
-      paras={content.paras.length ? content.paras : NO_PARAS}
+      paras={paras}
       word={word}
       end={end}
       guide={settings.guide ?? "flash"}
@@ -74,6 +78,8 @@ export function GuidedSample({ guide }: { guide: GuideId }) {
   }, [index, starts, style, wpm]);
 
   const i = Math.min(index, starts.length - 1);
+  if (guide === "cards")
+    return <SentenceCards words={SAMPLE} paras={SAMPLE_PARAS} word={starts[i]} end={starts[i + 1] ?? SAMPLE.length} onLineStarts={onLineStarts} />;
   return (
     <GuidedText
       words={SAMPLE}

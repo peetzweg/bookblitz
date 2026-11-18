@@ -75,6 +75,21 @@ export function setLineStartTest(test: ((word: number) => boolean) | null) {
 export function lineReturnMs(wpm: number) {
   return Math.max((0.35 * 60000) / wpm, 120);
 }
+/** Gentle start (experimental): the session starts at this share of the speed and eases up to full. */
+const GENTLE_FROM = 0.75;
+const GENTLE_MS = 45000;
+/** A pause shorter than this carries on the session; a longer one starts a new, gentle, one. */
+const SESSION_GAP_MS = 15000;
+/** Reading time so far in this session, and when the last pause began. */
+let sessionMs = 0;
+let pausedAt = -Infinity;
+
+/** The share of the set speed to read at now: 1, or less early in a session with Gentle start on. */
+function gentleFactor() {
+  if (!library.get().settings.gentleStart) return 1;
+  return GENTLE_FROM + (1 - GENTLE_FROM) * Math.min(1, sessionMs / GENTLE_MS);
+}
+
 /** Frames shown since play was pressed, for the ramp-up. */
 let framesInRun = 0;
 let lastSave = 0;
@@ -89,6 +104,29 @@ function currentStyle(): ReadingStyle {
 }
 let wakeLock: WakeLockSentinel | undefined;
 
+/** Opening the book you're in again after this long counts as coming back to it, not a pause. */
+const REENTRY_GAP_MS = 10 * 60 * 1000;
+/** Coming back, a paragraph up to this long is read again from its start; a longer one from the sentence. */
+const PARAGRAPH_REWIND_MAX = 120;
+
+/**
+ * Coming back to a book, start at the beginning of the paragraph you were in (or of the sentence, in a
+ * long paragraph) rather than mid-sentence, so you pick the thread up again. A pause while reading
+ * still carries on exactly where it stopped.
+ */
+function rewindForReentry() {
+  const { content, chapter, word } = reader.get();
+  const words = content?.[chapter]?.words;
+  if (!words || word === 0) return;
+  let start = word;
+  while (start > 0 && !paraEnds.has(start - 1)) start--;
+  if (word - start > PARAGRAPH_REWIND_MAX) {
+    start = word;
+    while (start > 0 && !startsSentence(words, start, paraEnds)) start--;
+  }
+  if (start !== word) seek(chapter, start, false);
+}
+
 export async function openBook(id: string, opts: { chapter?: number; word?: number; open?: boolean } = {}) {
   const current = reader.get();
   if (current.book?.id !== id) {
@@ -99,6 +137,9 @@ export async function openBook(id: string, opts: { chapter?: number; word?: numb
     reader.set({ book, content, chapter: saved?.chapter ?? 0, word: saved?.word ?? 0, completed: null });
     indexChapter();
     updateSettings({ lastBookId: id });
+    rewindForReentry();
+  } else if (!current.playing && performance.now() - pausedAt > REENTRY_GAP_MS) {
+    rewindForReentry();
   }
   if (opts.chapter !== undefined) seek(opts.chapter, opts.word ?? 0);
   if (opts.open ?? true) {
@@ -127,6 +168,7 @@ export function play() {
   framesInRun = 0;
   frameProgress = 0;
   carryMs = 0;
+  if (performance.now() - pausedAt > SESSION_GAP_MS) sessionMs = 0;
   reader.set({ playing: true, completed: null, askStyle: false });
   acquireWakeLock();
   lastFrame = performance.now();
@@ -137,6 +179,7 @@ export function pause() {
   if (frame !== undefined) cancelAnimationFrame(frame);
   frame = undefined;
   if (!reader.get().playing) return;
+  pausedAt = performance.now();
   reader.set({ playing: false, rate: null });
   persist();
   releaseWakeLock();
@@ -217,7 +260,9 @@ function tick(now: number) {
   const state = reader.get();
   if (!state.playing || !state.content) return;
 
-  const rate = state.rate ?? library.get().settings.wpm;
+  sessionMs += dt;
+  // The speed gesture sets the speed outright; Gentle start only eases the set speed.
+  const rate = state.rate ?? library.get().settings.wpm * gentleFactor();
   if (rate !== 0) {
     const forward = rate > 0;
     reversed = !forward;

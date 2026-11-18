@@ -303,3 +303,29 @@ export function paragraphEnds(paras: number[], total: number): Set<number> {
 export function startsSentence(words: string[], index: number, paraEnds: Set<number>): boolean {
   return index === 0 || paraEnds.has(index - 1) || endsWithSentence(words[index - 1]);
 }
+
+/** A sentence longer than this many words is shown in parts on a sentence card. */
+const CHUNK_MAX = 28;
+/** No part is shorter than this, so a long sentence doesn't leave a scrap behind. */
+const CHUNK_MIN = 8;
+/** Where to cut a long sentence that has no comma in the right place. */
+const CHUNK_CUT = 20;
+
+/**
+ * The sentence card that word `index` is on: its sentence, or for a long one, the part of it between
+ * clause breaks (",", ";", "—"). Always cut the same way from the sentence start, so the cards stay put.
+ */
+export function chunkAt(words: string[], paraEnds: Set<number>, index: number): { start: number; end: number } {
+  let start = index;
+  while (start > 0 && !startsSentence(words, start, paraEnds)) start--;
+  let end = start + 1;
+  while (end < words.length && !startsSentence(words, end, paraEnds)) end++;
+  while (end - start > CHUNK_MAX) {
+    let cut = -1;
+    for (let j = start + CHUNK_MIN - 1; j < Math.min(start + CHUNK_MAX, end - CHUNK_MIN); j++) if (endsWithClause(words[j])) cut = j + 1;
+    if (cut < 0) cut = Math.min(start + CHUNK_CUT, end - CHUNK_MIN);
+    if (index < cut) return { start, end: cut };
+    start = cut;
+  }
+  return { start, end };
+}
